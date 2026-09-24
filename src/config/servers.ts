@@ -2,11 +2,11 @@ import { StreamingServer } from '../types';
 
 export const STREAMING_SERVERS: StreamingServer[] = [
   {
-    id: 'vidsrcpm',
-    name: 'Server 1: VidSrc PM (Fast CDN • Clean HTML5)',
+    id: 'vidsrc_pm',
+    name: 'Server 1: VidSrc VIP (Fast CDN • 1080p)',
     badge: 'DEFAULT VIP',
     quality: '1080p Full HD',
-    speed: 'Instant CDN • Working',
+    speed: 'Instant CDN • Ultra Fast',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
@@ -15,64 +15,63 @@ export const STREAMING_SERVERS: StreamingServer[] = [
     },
   },
   {
-    id: 'streamimdb',
-    name: 'Server 2: StreamIMDb (Fast Stream • Clean Play)',
-    badge: 'STREAM IMDB',
-    quality: '1080p Full HD',
-    speed: 'Instant Play • No Sandbox Block',
+    id: 'vidlink_pro',
+    name: 'Server 2: VidLink HD (Clean Stream • Zero Ads)',
+    badge: 'CLEAN HD',
+    quality: '1080p 60FPS',
+    speed: 'High-Speed HLS • Multi-Sub',
     isReliable: true,
-    getUrl: (type, id, season = 1, episode = 1, imdbId?: string) => {
-      const identifier = imdbId || id;
+    getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
-        ? `https://streamimdb.ru/embed/movie/${identifier}`
-        : `https://streamimdb.ru/embed/tv/${identifier}/${season}/${episode}`;
+        ? `https://vidlink.pro/movie/${id}`
+        : `https://vidlink.pro/tv/${id}/${season}/${episode}`;
     },
   },
   {
-    id: 'vidsrcio',
-    name: 'Server 3: VidSrc IO (Cloud CDN • Zero Lag)',
-    badge: 'CLOUD CDN',
+    id: 'embed_su',
+    name: 'Server 3: Embed.su (Cloud Stream • 4K Mirror)',
+    badge: 'CLOUD 4K',
+    quality: '4K / 1080p',
+    speed: 'Global Edge • Instant Play',
+    isReliable: true,
+    getUrl: (type, id, season = 1, episode = 1) => {
+      return type === 'movie'
+        ? `https://embed.su/embed/movie/${id}`
+        : `https://embed.su/embed/tv/${id}/${season}/${episode}`;
+    },
+  },
+  {
+    id: 'vidsrc_cc',
+    name: 'Server 4: VidSrc CC (High Speed • Multi-Audio)',
+    badge: 'TURBO HD',
+    quality: '1080p Full HD',
+    speed: 'Direct CDN • Zero Lag',
+    isReliable: true,
+    getUrl: (type, id, season = 1, episode = 1) => {
+      return type === 'movie'
+        ? `https://vidsrc.cc/v2/embed/movie/${id}`
+        : `https://vidsrc.cc/v2/embed/tv/${id}/${season}/${episode}`;
+    },
+  },
+  {
+    id: 'multiembed_mov',
+    name: 'Server 5: MultiEmbed (Universal Global Mirror)',
+    badge: 'MULTI-AUDIO',
     quality: '1080p HD',
-    speed: 'Instant Buffer • High Speed',
+    speed: 'Multi-Source • Fast Buffer',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
-        ? `https://vidsrc.io/embed/movie/${id}`
-        : `https://vidsrc.io/embed/tv/${id}/${season}/${episode}`;
+        ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
+        : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
     },
   },
   {
-    id: 'vidsrcsh',
-    name: 'Server 4: VidSrc SH (Direct High Speed Mirror)',
-    badge: 'DIRECT MIRROR',
-    quality: '1080p Full HD',
-    speed: 'Fast CDN Mirror • Clean',
-    isReliable: true,
-    getUrl: (type, id, season = 1, episode = 1) => {
-      return type === 'movie'
-        ? `https://vidsrc.sh/embed/movie?tmdb=${id}`
-        : `https://vidsrc.sh/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`;
-    },
-  },
-  {
-    id: 'autoembed',
-    name: 'Server 5: AutoEmbed (VidCore Direct CDN)',
-    badge: 'AUTOEMBED',
-    quality: '1080p Full HD',
-    speed: 'Adaptive Bitrate • 1080p',
-    isReliable: true,
-    getUrl: (type, id, season = 1, episode = 1) => {
-      return type === 'movie'
-        ? `https://autoembed.co/movie/tmdb/${id}`
-        : `https://autoembed.co/tv/tmdb/${id}/${season}/${episode}`;
-    },
-  },
-  {
-    id: 'vidsrcnet',
-    name: 'Server 6: VidSrc Net (Global Edge Stream)',
-    badge: 'GLOBAL CDN',
+    id: 'vidsrc_net',
+    name: 'Server 6: VidSrc Net (High Bandwidth Mirror)',
+    badge: 'RED VIP',
     quality: '1080p HD',
-    speed: 'Global Edge • HTML5',
+    speed: 'Cinema Audio • Backup Node',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
@@ -81,16 +80,16 @@ export const STREAMING_SERVERS: StreamingServer[] = [
     },
   },
   {
-    id: 'multiembed',
-    name: 'Server 7: MultiEmbed (Universal HD Mirror)',
-    badge: 'MULTI-MIRROR',
+    id: 'autoembed_co',
+    name: 'Server 7: AutoEmbed Pro (Direct Clean Mirror)',
+    badge: 'BACKUP DIRECT',
     quality: '1080p HD',
-    speed: 'Auto Multi-Mirror HD',
+    speed: 'Reliable Mirror • Instant Buffer',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
-        ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
-        : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
+        ? `https://autoembed.co/movie/tmdb/${id}`
+        : `https://autoembed.co/tv/tmdb/${id}/${season}/${episode}`;
     },
   },
 ];

@@ -1,6 +1,6 @@
 {
-  "name": "FlixStream HD",
-  "description": "FlixStream HD - Free Full-Length Movies & TV Shows Streaming with 6 Ultra HD Server Mirrors, TMDB catalog, and personalized watchlists.",
+  "name": "Perkvex",
+  "description": "Perkvex - Stream free Full-Length Movies, TV Shows & Anime in 4K & Ultra HD with 7 fast servers, complete seasons catalog, and rich search.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

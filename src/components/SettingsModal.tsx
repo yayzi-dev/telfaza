@@ -23,14 +23,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [delaySeconds, setDelaySeconds] = useState(settings.lockerDelaySeconds);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [relockedSuccess, setRelockedSuccess] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       tmdbApiKey: apiKey.trim() || DEFAULT_TMDB_API_KEY,
       lockerEnabled,
-      lockerId: lockerId.trim() || '4o7vvr',
-      lockerDelaySeconds: Math.max(3, Number(delaySeconds) || 15),
+      lockerId: lockerId.trim() || 'o4e5p2',
+      lockerDelaySeconds: Math.max(0, Number(delaySeconds) || 0),
     });
     setSavedSuccess(true);
     setTimeout(() => {
@@ -53,8 +54,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleResetDefault = () => {
     setApiKey(DEFAULT_TMDB_API_KEY);
     setLockerEnabled(true);
-    setLockerId('4o7vvr');
-    setDelaySeconds(15);
+    setLockerId('o4e5p2');
+    setDelaySeconds(10);
   };
 
   return (
@@ -67,7 +68,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-wide">FlixStream HD Settings</h2>
+              <h2 className="text-base font-bold tracking-wide">Perkvex Settings</h2>
               <p className="text-xs text-zinc-400">Configure TMDB API and CPA Locker Settings</p>
             </div>
           </div>
@@ -116,7 +117,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <Shield className="w-4 h-4 text-red-500" /> OGAds CPA Locker
                 </span>
                 <p className="text-xs text-zinc-400">
-                  Activates HD Stream Access Verification modal
+                  Activates Human Verification locker (LAST())
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -138,36 +139,56 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     type="text"
                     value={lockerId}
                     onChange={(e) => setLockerId(e.target.value)}
-                    placeholder="e.g. 4o7vvr"
+                    placeholder="e.g. o4e5p2"
                     className="w-full px-3 py-2 bg-black/70 border border-zinc-700 focus:border-red-500 rounded-lg text-xs font-mono text-zinc-100 outline-none"
                   />
-                  <span className="text-[10px] text-zinc-400">Default: 4o7vvr</span>
+                  <span className="text-[10px] text-zinc-400">Current: o4e5p2 (LAST())</span>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-300 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-amber-400" /> Delay Timer (seconds)
+                    <Clock className="w-3 h-3 text-amber-400" /> Trigger Delay (0 = Instant on Play)
                   </label>
                   <input
                     type="number"
-                    min={3}
+                    min={0}
                     max={120}
                     value={delaySeconds}
                     onChange={(e) => setDelaySeconds(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-black/70 border border-zinc-700 focus:border-red-500 rounded-lg text-xs font-mono text-zinc-100 outline-none"
                   />
-                  <span className="text-[10px] text-zinc-400">Default: 15s</span>
+                  <span className="text-[10px] text-zinc-400">0s = Instant on Play click</span>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-1 text-xs">
               <button
                 type="button"
                 onClick={onTriggerTestLocker}
-                className="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+                className="text-amber-400 hover:text-amber-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5" /> Test Preview Locker Modal Now
+                <Sparkles className="w-3.5 h-3.5" /> Test Preview Locker Modal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    sessionStorage.clear();
+                    Object.keys(localStorage).forEach((key) => {
+                      if (key.startsWith('unlocked_') || key.startsWith('flixstream_unlocked_')) {
+                        localStorage.removeItem(key);
+                      }
+                    });
+                  } catch {
+                    // ignore
+                  }
+                  setRelockedSuccess(true);
+                  setTimeout(() => setRelockedSuccess(false), 2500);
+                }}
+                className="text-red-400 hover:text-red-300 underline underline-offset-2 transition cursor-pointer"
+              >
+                {relockedSuccess ? '✓ All Re-Locked!' : 'Reset Unlock Status (Re-Lock All)'}
               </button>
             </div>
           </div>

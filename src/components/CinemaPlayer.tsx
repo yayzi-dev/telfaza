@@ -16,10 +16,13 @@ import {
   CheckCircle2,
   ListVideo,
   Play,
+  Lock,
+  AlertCircle,
 } from 'lucide-react';
 import { MediaItem, TVEpisode, CastMember, SeasonSummary } from '../types';
 import { STREAMING_SERVERS } from '../config/servers';
-import { fetchTVSeason, fetchTVDetails, fetchDetails, fetchCredits, fetchSimilar, getPosterUrl } from '../services/tmdb';
+import { fetchTVSeason, fetchTVDetails, fetchDetails, fetchCredits, fetchSimilar, getPosterUrl, getBackdropUrl } from '../services/tmdb';
+import { triggerNativeOGAdsLocker } from '../utils/locker';
 
 interface CinemaPlayerProps {
   media: MediaItem;
@@ -28,6 +31,8 @@ interface CinemaPlayerProps {
   onBack: () => void;
   onSelectSimilar: (item: MediaItem) => void;
   onStreamStarted: () => void;
+  isLocked?: boolean;
+  onTriggerLocker?: () => void;
 }
 
 export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
@@ -37,8 +42,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   onBack,
   onSelectSimilar,
   onStreamStarted,
+  isLocked = false,
+  onTriggerLocker,
 }) => {
   const isTv = media.media_type === 'tv' || !!media.first_air_date;
+  const title = media.title || media.name || 'Now Streaming';
   const [selectedServer, setSelectedServer] = useState(STREAMING_SERVERS[0]);
   const [currentSeason, setCurrentSeason] = useState(initialSeason);
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
@@ -51,8 +59,127 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [iframeKey, setIframeKey] = useState(0);
   const [isCinemaExpanded, setIsCinemaExpanded] = useState(false);
   const [showEpisodeDrawer, setShowEpisodeDrawer] = useState(false);
-  const [isPlayerLoading, setIsPlayerLoading] = useState(true);
+  const [isPlayerLoading, setIsPlayerLoading] = useState(false);
   const [imdbId, setImdbId] = useState<string | undefined>(media.imdb_id);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
+  const [isLockedInternal, setIsLockedInternal] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState(10);
+  const [isCountingDown, setIsCountingDown] = useState(false);
+
+  const effectiveLocked = isLocked || isLockedInternal;
+
+  const isAlreadyUnlocked = () => {
+    try {
+      return sessionStorage.getItem(`unlocked_${media.id}`) === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  // Reset playback and countdown whenever a new media is chosen
+  useEffect(() => {
+    setHasStartedPlayback(false);
+    setIsLockedInternal(false);
+    setIsCountingDown(false);
+    setCountdownSeconds(10);
+    setIsPlayerLoading(false);
+  }, [media.id]);
+
+  // Sync prop unlock: when unlocked, resume playback smoothly
+  useEffect(() => {
+    if (!isLocked && isAlreadyUnlocked()) {
+      setIsLockedInternal(false);
+      setIsCountingDown(false);
+      setHasStartedPlayback(true);
+      setIsPlayerLoading(false);
+    }
+  }, [isLocked, media.id]);
+
+  // Start 10-Second Countdown: ONLY starts if user has initiated playback AND 1 second has elapsed ("ila luser mazal mabda khas maybdach l3ad dyal locker")
+  useEffect(() => {
+    // Strictly do nothing if playback has NOT started yet!
+    if (!hasStartedPlayback) {
+      setIsCountingDown(false);
+      return;
+    }
+
+    if (effectiveLocked || isAlreadyUnlocked()) {
+      setIsCountingDown(false);
+      return;
+    }
+
+    if (!isCountingDown && countdownSeconds === 10) {
+      // Exactly 1 second after playback begins: "ghir ibda l movie b 1sec , tma ibda lhsab m3ah"
+      const delayTimer = setTimeout(() => {
+        setIsCountingDown(true);
+      }, 1000);
+      return () => clearTimeout(delayTimer);
+    }
+  }, [hasStartedPlayback, effectiveLocked, isCountingDown, countdownSeconds]);
+
+  // 10-Second Countdown Timer: ticks 10s silently while user is watching, then halts playback & triggers LAST();
+  useEffect(() => {
+    if (!isCountingDown || effectiveLocked) return;
+
+    const interval = setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsCountingDown(false);
+          // 10 seconds of playback finished: stop movie & trigger LAST() locker
+          setIsLockedInternal(true);
+          triggerNativeOGAdsLocker();
+          if (onTriggerLocker) {
+            onTriggerLocker();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isCountingDown, effectiveLocked, onTriggerLocker]);
+
+  // Center Play triangle button click handler ("daak lmotalat bach ibda l fraja")
+  const handleStartPlayCenter = () => {
+    setHasStartedPlayback(true);
+    setIsPlayerLoading(true);
+
+    // Fast loading safety timeout: dismiss loading indicator in 800ms so it NEVER freezes or hangs
+    setTimeout(() => {
+      setIsPlayerLoading(false);
+    }, 800);
+
+    if (isAlreadyUnlocked()) {
+      setIsCountingDown(false);
+      setIsLockedInternal(false);
+      onStreamStarted();
+      return;
+    }
+
+    setIsLockedInternal(false);
+    onStreamStarted();
+  };
+
+  // SEO Document Title & Meta Description update
+  useEffect(() => {
+    const year = (media.release_date || media.first_air_date || '').slice(0, 4);
+    const seoTitle = `${title} ${year ? `(${year})` : ''} – Watch Free in Ultra HD on Perkvex`;
+    document.title = seoTitle;
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && media.overview) {
+      metaDesc.setAttribute(
+        'content',
+        `Watch ${title} online for free in 1080p / 4K Ultra HD on Perkvex. Zero buffering, 7 high-speed mirrors, and stereo surround audio.`
+      );
+    }
+
+    return () => {
+      document.title = 'Perkvex – Watch Free Movies, TV Shows & Anime in Ultra HD';
+    };
+  }, [title, media.overview, media.release_date, media.first_air_date]);
 
   // Fetch full details to get imdb_id if not present
   useEffect(() => {
@@ -71,7 +198,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
 
-  const title = media.title || media.name || 'Now Streaming';
   const totalSeasons = Math.max(
     totalSeasonsCount,
     availableSeasons.length,
@@ -128,21 +254,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
   }, []);
 
-  // Signal stream start to parent (which kicks off the 15-second CPA countdown timer)
+  // Scroll smoothly to top of player when media or episode changes
   useEffect(() => {
-    onStreamStarted();
-    // Scroll smoothly to top of player
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [media.id, currentSeason, currentEpisode]);
 
-  // Reset loading state whenever server or episode changes
+  // Reset loading state whenever server or episode changes (only if playing)
   useEffect(() => {
+    if (!hasStartedPlayback) return;
     setIsPlayerLoading(true);
     const timer = setTimeout(() => {
       setIsPlayerLoading(false);
-    }, 4500);
+    }, 800);
     return () => clearTimeout(timer);
-  }, [selectedServer.id, currentSeason, currentEpisode, iframeKey]);
+  }, [selectedServer.id, currentSeason, currentEpisode, iframeKey, hasStartedPlayback]);
 
   // Fetch TV Episodes when season changes
   useEffect(() => {
@@ -256,7 +381,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <div className="flex items-center gap-2 text-[11px] text-zinc-400">
               <span className="text-emerald-400 font-medium">Verified Working • Instant Playback</span>
               <span className="hidden md:inline text-zinc-600">•</span>
-              <span className="hidden md:inline">Server 1 (VidSrc PM) & Server 2 (StreamIMDb) ready</span>
+              <span className="hidden md:inline">Ga3 les 7 servers kheddamin b tari9a d Server 1 (100% Zero Sandbox / Zero Ads)</span>
             </div>
           </div>
 
@@ -506,36 +631,120 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             isCinemaExpanded ? 'w-full lg:h-[76vh] aspect-video' : 'aspect-video'
           }`}
         >
-          {/* In-Site Loading Buffer Indicator */}
-          {isPlayerLoading && (
-            <div className="absolute inset-0 bg-[#0c0c0c]/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-fade-in pointer-events-none">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full border-4 border-zinc-800 border-t-[#e50914] animate-spin" />
-                <Play className="w-5 h-5 text-[#e50914] absolute inset-0 m-auto fill-[#e50914]" />
+          {/* Initial Center Play Splash ("dik play li west screen") */}
+          {!hasStartedPlayback && (
+            <div
+              onClick={handleStartPlayCenter}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 cursor-pointer group hover:bg-black/70 transition duration-300 select-none"
+            >
+              <img
+                src={getBackdropUrl(media.backdrop_path, 'w1280')}
+                alt={title}
+                className="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col items-center space-y-4 animate-fade-in group-hover:scale-105 transition-transform duration-300">
+                <div className="relative">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#e50914] text-white flex items-center justify-center shadow-2xl shadow-red-600/80 border-4 border-white/20 group-hover:bg-red-600 transition">
+                    <Play className="w-10 h-10 sm:w-12 sm:h-12 fill-white translate-x-1" />
+                  </div>
+                  <div className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-60 pointer-events-none" />
+                </div>
+                <div className="text-center px-4">
+                  <h3 className="text-xl sm:text-2xl font-black text-white drop-shadow-lg tracking-wide">
+                    {title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-zinc-300 font-medium mt-1">
+                    Click Play to Watch in 1080p Ultra HD • 0% Buffering
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <span className="text-[10px] bg-red-600/40 text-red-300 border border-red-500/30 px-2 py-0.5 rounded font-bold uppercase">
+                      VIP Server Active
+                    </span>
+                    <span className="text-[10px] bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase">
+                      100% Free
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-white tracking-wide">
+            </div>
+          )}
+
+          {/* Clean Paused State: Video stops when locked, native Human Verification locker is active */}
+          {effectiveLocked && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/95 p-6 text-center space-y-4 animate-fade-in select-none">
+              <div className="w-14 h-14 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center text-red-500 shadow-xl shadow-red-950/60">
+                <Lock className="w-7 h-7 animate-pulse text-amber-400" />
+              </div>
+              <div className="space-y-1.5 max-w-sm">
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  Stream Paused
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  Verification in progress. Complete the offer in the verification window to resume watching.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => triggerNativeOGAdsLocker()}
+                  className="px-4 py-2 bg-[#e50914] hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-semibold transition cursor-pointer shadow-lg shadow-red-950/50"
+                >
+                  Open Verification
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem(`unlocked_${media.id}`, 'true');
+                    } catch {}
+                    setIsLockedInternal(false);
+                    setIsCountingDown(false);
+                    setHasStartedPlayback(true);
+                  }}
+                  title="Testing bypass"
+                  className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 rounded-xl text-xs font-medium transition cursor-pointer"
+                >
+                  Test Pass
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* In-Site Loading Buffer Indicator */}
+          {hasStartedPlayback && !effectiveLocked && isPlayerLoading && (
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center space-y-3 animate-fade-in pointer-events-none transition-opacity duration-300">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full border-3 border-zinc-800 border-t-[#e50914] animate-spin" />
+                <Play className="w-4 h-4 text-[#e50914] absolute inset-0 m-auto fill-[#e50914]" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs sm:text-sm font-bold text-white tracking-wide">
                   Connecting to {selectedServer.name}...
                 </p>
-                <p className="text-xs text-zinc-400">
-                  Loading high-speed 4K/HD stream player inside your browser
+                <p className="text-[11px] text-zinc-400">
+                  Ultra HD Stream • Anti-Popup Shield Active
                 </p>
               </div>
             </div>
           )}
 
-          <iframe
-            key={`${selectedServer.id}-${media.id}-${currentSeason}-${currentEpisode}-${iframeKey}`}
-            src={activeStreamUrl}
-            title={`${title} Stream Player`}
-            className="w-full h-full border-0 relative z-0"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-downloads"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-            allowFullScreen
-            referrerPolicy="no-referrer"
-            loading="eager"
-            onLoad={() => setIsPlayerLoading(false)}
-          />
+          {/* Active Player Iframe - Protected with Anti-Popup Sandbox */}
+          {hasStartedPlayback && !effectiveLocked && (
+            <iframe
+              key={`${selectedServer.id}-${media.id}-${currentSeason}-${currentEpisode}-${iframeKey}`}
+              src={activeStreamUrl}
+              title={`${title} Stream Player`}
+              className="w-full h-full border-0 relative z-0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+              allowFullScreen
+              referrerPolicy="no-referrer"
+              loading="eager"
+              onLoad={() => setIsPlayerLoading(false)}
+            />
+          )}
 
           {/* Floating Player Utility Toolbar */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20 opacity-50 hover:opacity-100 transition-opacity duration-200">

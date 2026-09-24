@@ -108,7 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-1.5 focus:outline-none cursor-pointer group"
           >
             <span className="text-2xl sm:text-3xl font-black font-bebas tracking-wider text-[#e50914] group-hover:scale-105 transition">
-              FLIX<span className="text-white">STREAM</span>
+              PERK<span className="text-white">VEX</span>
             </span>
             <span className="px-1.5 py-0.5 text-[10px] font-black uppercase bg-[#e50914] text-white rounded font-sans tracking-widest shadow-sm">
               HD

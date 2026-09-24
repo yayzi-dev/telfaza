@@ -30,7 +30,7 @@ import { CinemaPlayer } from './components/CinemaPlayer';
 import { MediaDetailModal } from './components/MediaDetailModal';
 import { TrailerModal } from './components/TrailerModal';
 import { SettingsModal } from './components/SettingsModal';
-import { LockerModal } from './components/LockerModal';
+import { triggerNativeOGAdsLocker } from './utils/locker';
 
 const CATEGORIES = ['All', 'Action', 'Comedy', 'Horror', 'Sci-Fi', 'Drama'];
 
@@ -45,8 +45,6 @@ export default function App() {
   const [detailMedia, setDetailMedia] = useState<MediaItem | null>(null);
   const [trailerMedia, setTrailerMedia] = useState<MediaItem | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showLockerModal, setShowLockerModal] = useState(false);
-  const [lockerMedia, setLockerMedia] = useState<MediaItem | null>(null);
 
   // Data Collections
   const [heroMedia, setHeroMedia] = useState<MediaItem | null>(null);
@@ -92,15 +90,19 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
       const saved = localStorage.getItem('flixstream_settings');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.lockerId === 'o4e2pq') parsed.lockerId = 'o4e5p2';
+        return parsed;
+      }
     } catch {
       // ignore
     }
     return {
       tmdbApiKey: DEFAULT_TMDB_API_KEY,
       lockerEnabled: true,
-      lockerId: '4o7vvr',
-      lockerDelaySeconds: 15,
+      lockerId: 'o4e5p2',
+      lockerDelaySeconds: 10,
     };
   });
 
@@ -119,6 +121,19 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('flixstream_settings', JSON.stringify(settings));
   }, [settings]);
+
+  // Clean legacy persistent unlock keys from localStorage so 10-second locker works on test sessions
+  useEffect(() => {
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('unlocked_') || key.startsWith('flixstream_unlocked_')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Initial TMDB Data Load
   useEffect(() => {
@@ -224,49 +239,14 @@ export default function App() {
     addToHistory(item, season, episode);
   };
 
-  // 15-second CPA Locker Timer hook
+  // CPA Locker Stream Hook
   const handleStreamStarted = () => {
-    if (!activeMedia) return;
-
-    // Check if already unlocked in localStorage
-    const isUnlocked = localStorage.getItem(`unlocked_${activeMedia.id}`) === 'true';
-
-    // Clear any pending timer
-    if (lockerTimerRef.current) {
-      clearTimeout(lockerTimerRef.current);
-      lockerTimerRef.current = null;
-    }
-
-    if (settings.lockerEnabled && !isUnlocked) {
-      const delayMs = Math.max(3000, (settings.lockerDelaySeconds || 15) * 1000);
-      lockerTimerRef.current = setTimeout(() => {
-        setLockerMedia(activeMedia);
-        setShowLockerModal(true);
-      }, delayMs);
-    }
-  };
-
-  // Locker unlock callback
-  const handleLockerUnlocked = () => {
-    if (lockerMedia) {
-      localStorage.setItem(`unlocked_${lockerMedia.id}`, 'true');
-    }
-    setShowLockerModal(false);
+    // Media stream active
   };
 
   // Trigger test locker from settings
   const handleTriggerTestLocker = () => {
-    const testItem = activeMedia || heroMedia || trendingAll[0] || {
-      id: 157336,
-      title: 'Interstellar',
-      overview: 'Test playback access verification locker.',
-      poster_path: null,
-      backdrop_path: null,
-      vote_average: 8.5,
-      vote_count: 36000,
-    };
-    setLockerMedia(testItem);
-    setShowLockerModal(true);
+    triggerNativeOGAdsLocker();
     setShowSettings(false);
   };
 
@@ -708,7 +688,7 @@ export default function App() {
                     <span>Trending Right Now</span>
                   </h1>
                   <p className="text-xs text-zinc-400 mt-1">
-                    The most streamed titles in the world today on FlixStream HD
+                    The most streamed titles in the world today on Perkvex
                   </p>
                 </div>
 
@@ -926,14 +906,14 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bebas tracking-wider text-[#e50914]">
-              FLIX<span className="text-white">STREAM</span>
+              PERK<span className="text-white">VEX</span>
             </span>
             <span className="text-[9px] px-1.5 py-0.2 bg-zinc-800 text-zinc-400 rounded font-mono">
               v1.0 ULTRA HD
             </span>
           </div>
           <p className="text-center md:text-left text-zinc-500 text-[11px]">
-            FlixStream HD uses TMDB v3 API for media metadata and delivers high-performance 1080p / 4K streaming through 6 high-speed mirrors.
+            Perkvex uses TMDB v3 API for media metadata and delivers high-performance 1080p / 4K streaming through 7 high-speed mirrors.
           </p>
           <div className="flex items-center gap-4 text-zinc-400">
             <button
@@ -989,16 +969,6 @@ export default function App() {
           onSave={(newSettings) => setSettings(newSettings)}
           onClose={() => setShowSettings(false)}
           onTriggerTestLocker={handleTriggerTestLocker}
-        />
-      )}
-
-      {/* CPA 15-Second HD Access Verification Modal */}
-      {showLockerModal && lockerMedia && (
-        <LockerModal
-          media={lockerMedia}
-          lockerId={settings.lockerId}
-          onUnlocked={handleLockerUnlocked}
-          onClose={() => setShowLockerModal(false)}
         />
       )}
     </div>

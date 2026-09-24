@@ -67,11 +67,11 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlixStream HD - Watch Movies & TV Shows in Ultra HD</title>
-    <meta name="description" content="Free Full-Length Movies & TV Streaming with 6 Ultra HD Server Mirrors." />
+    <title>Perkvex – Watch Free Movies, TV Shows & Anime in Ultra HD</title>
+    <meta name="description" content="Perkvex - Free Full-Length Movies, TV Series & Anime Streaming with 7 Ultra HD Server Mirrors." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#141414] text-white antialiased">
     <div id="root"></div>
@@ -79,9 +79,9 @@ export default defineConfig({
   </body>
 </html>`);
 
-  zip.file('README.md', `# FlixStream HD - Production Movie & TV Streaming Web Application
+  zip.file('README.md', `# Perkvex - Production Movie, TV & Anime Streaming Web Application
 
-FlixStream HD is a high-performance, Netflix-style video streaming application built with React, Vite, TypeScript, and Tailwind CSS.
+Perkvex is a high-performance video streaming web application built with React, Vite, TypeScript, and Tailwind CSS.
 
 ## 🚀 Features
 - **Real TMDB v3 Catalog**: Live trending, top-rated, and categorized Movies and TV Series with backdrops, high-res posters, cast, and overviews.
