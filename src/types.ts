@@ -20,6 +20,7 @@ export interface MediaItem {
   tagline?: string;
   status?: string;
   seasons?: SeasonSummary[];
+  imdb_id?: string;
 }
 
 export interface SeasonSummary {
@@ -75,7 +76,7 @@ export interface StreamingServer {
   quality: string;
   speed: string;
   isReliable: boolean;
-  getUrl: (type: 'movie' | 'tv', id: number, season?: number, episode?: number) => string;
+  getUrl: (type: 'movie' | 'tv', id: number, season?: number, episode?: number, imdbId?: string) => string;
 }
 
 export interface WatchHistoryItem {

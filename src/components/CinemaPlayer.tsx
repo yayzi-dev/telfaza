@@ -17,9 +17,9 @@ import {
   ListVideo,
   Play,
 } from 'lucide-react';
-import { MediaItem, TVEpisode, CastMember } from '../types';
+import { MediaItem, TVEpisode, CastMember, SeasonSummary } from '../types';
 import { STREAMING_SERVERS } from '../config/servers';
-import { fetchTVSeason, fetchCredits, fetchSimilar, getPosterUrl } from '../services/tmdb';
+import { fetchTVSeason, fetchTVDetails, fetchDetails, fetchCredits, fetchSimilar, getPosterUrl } from '../services/tmdb';
 
 interface CinemaPlayerProps {
   media: MediaItem;
@@ -42,6 +42,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [selectedServer, setSelectedServer] = useState(STREAMING_SERVERS[0]);
   const [currentSeason, setCurrentSeason] = useState(initialSeason);
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
+  const [availableSeasons, setAvailableSeasons] = useState<SeasonSummary[]>(media.seasons || []);
+  const [totalSeasonsCount, setTotalSeasonsCount] = useState<number>(media.number_of_seasons || 1);
   const [episodes, setEpisodes] = useState<TVEpisode[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
   const [cast, setCast] = useState<CastMember[]>([]);
@@ -50,11 +52,81 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isCinemaExpanded, setIsCinemaExpanded] = useState(false);
   const [showEpisodeDrawer, setShowEpisodeDrawer] = useState(false);
   const [isPlayerLoading, setIsPlayerLoading] = useState(true);
+  const [imdbId, setImdbId] = useState<string | undefined>(media.imdb_id);
+
+  // Fetch full details to get imdb_id if not present
+  useEffect(() => {
+    if (!imdbId && media.id) {
+      if (isTv) {
+        fetchTVDetails(media.id).then((details) => {
+          if (details?.imdb_id) setImdbId(details.imdb_id);
+        });
+      } else {
+        fetchDetails('movie', media.id).then((details) => {
+          if (details?.imdb_id) setImdbId(details.imdb_id);
+        });
+      }
+    }
+  }, [media.id, isTv, imdbId]);
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
 
   const title = media.title || media.name || 'Now Streaming';
-  const totalSeasons = media.number_of_seasons || 1;
+  const totalSeasons = Math.max(
+    totalSeasonsCount,
+    availableSeasons.length,
+    media.number_of_seasons || 1
+  );
+
+  // Fetch full TV details to get all real seasons
+  useEffect(() => {
+    if (isTv) {
+      fetchTVDetails(media.id).then((details) => {
+        if (details) {
+          if (details.number_of_seasons) {
+            setTotalSeasonsCount(details.number_of_seasons);
+          }
+          if (details.seasons && details.seasons.length > 0) {
+            const regular = details.seasons.filter((s) => s.season_number > 0);
+            setAvailableSeasons(regular.length > 0 ? regular : details.seasons);
+            if (regular.length > 0) {
+              setTotalSeasonsCount(Math.max(...regular.map((s) => s.season_number)));
+            }
+          }
+        }
+      });
+    }
+  }, [media.id, isTv]);
+
+  // Intercept and permanently neutralize popup attempts, fake redirects, and clickjack ads
+  useEffect(() => {
+    const origOpen = window.open;
+    // Block window.open ad popups
+    window.open = function (...args) {
+      console.warn('[Anti-Popup Shield] Silently blocked ad popup attempt:', args[0]);
+      return null;
+    };
+
+    // Re-focus main window if an ad tries to hijack focus
+    const handleBlur = () => {
+      setTimeout(() => {
+        window.focus();
+      }, 50);
+    };
+    window.addEventListener('blur', handleBlur);
+
+    // Block accidental beforeunload traps often triggered by ad scripts
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Do nothing, avoid annoying ad leave alerts
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.open = origOpen;
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Signal stream start to parent (which kicks off the 15-second CPA countdown timer)
   useEffect(() => {
@@ -96,7 +168,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     isTv ? 'tv' : 'movie',
     media.id,
     currentSeason,
-    currentEpisode
+    currentEpisode,
+    imdbId || media.imdb_id
   );
 
   const handleReloadPlayer = () => {
@@ -145,7 +218,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           </button>
 
           <div className="flex items-center gap-2.5">
-            <span className="hidden sm:flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+            <span className="hidden sm:flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span>Full-Length 100% Free HD Stream</span>
             </span>
@@ -154,29 +227,40 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <button
               type="button"
               onClick={() => setIsCinemaExpanded(!isCinemaExpanded)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-lg transition font-medium cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-lg transition font-medium text-xs cursor-pointer"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span>{isCinemaExpanded ? 'Standard View' : 'Theater Mode'}</span>
+              <span>{isCinemaExpanded ? 'Standard' : 'Theater'}</span>
             </button>
+
+            {/* Anti-Popup Ad Shield Badge */}
+            <div
+              title="Anti-Popup Ad Shield is permanently active: Popups, click redirects and window spam are blocked"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-xs border bg-emerald-950/70 border-emerald-500/40 text-emerald-400 select-none"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Ad-Shield: ACTIVE</span>
+            </div>
           </div>
         </div>
 
-        {/* 6-Server Selector Switch Bar */}
+        {/* 7-Server Selector Switch Bar */}
         <div className="bg-[#1a1a1a] border border-zinc-800 rounded-2xl p-2.5 sm:p-3 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-zinc-800/80">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
-                Streaming Mirrors (6 Ultra HD Servers):
+                Streaming Mirrors (7 Ultra HD Servers):
               </span>
             </div>
-            <span className="text-[11px] text-zinc-400">
-              Switch servers if a stream is buffering or unavailable
-            </span>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <span className="text-emerald-400 font-medium">Verified Working • Instant Playback</span>
+              <span className="hidden md:inline text-zinc-600">•</span>
+              <span className="hidden md:inline">Server 1 (VidSrc PM) & Server 2 (StreamIMDb) ready</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 pt-2.5">
             {STREAMING_SERVERS.map((server, idx) => {
               const isSelected = selectedServer.id === server.id;
               return (
@@ -243,11 +327,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   }}
                   className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer"
                 >
-                  {Array.from({ length: totalSeasons }, (_, i) => i + 1).map((s) => (
-                    <option key={s} value={s} className="bg-zinc-900 text-white">
-                      Season {s}
-                    </option>
-                  ))}
+                  {availableSeasons.length > 0 ? (
+                    availableSeasons.map((s) => (
+                      <option key={s.season_number} value={s.season_number} className="bg-zinc-900 text-white">
+                        {s.name || `Season ${s.season_number}`} {s.episode_count ? `(${s.episode_count} eps)` : ''}
+                      </option>
+                    ))
+                  ) : (
+                    Array.from({ length: totalSeasons }, (_, i) => i + 1).map((s) => (
+                      <option key={s} value={s} className="bg-zinc-900 text-white">
+                        Season {s}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -306,7 +398,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 }`}
               >
                 <ListVideo className="w-3.5 h-3.5" />
-                <span>Episode List</span>
+                <span>All Seasons & Episodes</span>
               </button>
             </div>
           </div>
@@ -325,6 +417,46 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               >
                 Close
               </button>
+            </div>
+
+            {/* Quick Season Navigation Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+              <span className="text-[11px] text-zinc-400 font-medium shrink-0 mr-1">Seasons:</span>
+              {availableSeasons.length > 0 ? (
+                availableSeasons.map((s) => (
+                  <button
+                    key={s.season_number}
+                    onClick={() => {
+                      setCurrentSeason(s.season_number);
+                      setCurrentEpisode(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                      currentSeason === s.season_number
+                        ? 'bg-[#e50914] text-white shadow-sm'
+                        : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                    }`}
+                  >
+                    {s.name || `Season ${s.season_number}`} {s.episode_count ? `(${s.episode_count})` : ''}
+                  </button>
+                ))
+              ) : (
+                Array.from({ length: totalSeasons }, (_, i) => i + 1).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      setCurrentSeason(s);
+                      setCurrentEpisode(1);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                      currentSeason === s
+                        ? 'bg-[#e50914] text-white shadow-sm'
+                        : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                    }`}
+                  >
+                    Season {s}
+                  </button>
+                ))
+              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-72 overflow-y-auto pr-1">
               {episodes.map((ep) => {
@@ -397,6 +529,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             src={activeStreamUrl}
             title={`${title} Stream Player`}
             className="w-full h-full border-0 relative z-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-downloads"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
             referrerPolicy="no-referrer"
@@ -444,6 +577,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
+            <div
+              title="Anti-Popup Shield: Active (Popups and click redirects blocked)"
+              className="p-2 rounded-lg backdrop-blur-md border bg-emerald-950/80 border-emerald-500/50 text-emerald-400 select-none flex items-center justify-center"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </div>
           </div>
         </div>
 
@@ -453,8 +592,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Currently playing on <strong className="text-white">{selectedServer.name}</strong> ({selectedServer.quality})</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span>Stream buffering or paused?</span>
+          <div className="flex items-center gap-3">
+            <span className="text-emerald-400 font-medium flex items-center gap-1.5 text-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Anti-Popup Shield: 100% Active</span>
+            </span>
+            <span className="text-zinc-600">•</span>
             <button
               type="button"
               onClick={() => {

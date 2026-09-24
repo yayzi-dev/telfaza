@@ -77,7 +77,6 @@ export const LockerModal: React.FC<LockerModalProps> = ({
               src={lockerUrl}
               title="OGAds HD Access Verification"
               className="w-full h-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             />
 
             {/* Fallback overlay in case iframe is blocked by client adblocker */}

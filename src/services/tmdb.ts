@@ -221,10 +221,11 @@ export async function fetchByGenre(type: 'movie' | 'tv', genreId: number, page: 
 
 export async function fetchDetails(type: 'movie' | 'tv', id: number): Promise<MediaItem | null> {
   try {
-    const data = await tmdbFetch<MediaItem>(`/${type}/${id}`, {
-      append_to_response: 'videos,credits,similar',
+    const data = await tmdbFetch<any>(`/${type}/${id}`, {
+      append_to_response: 'videos,credits,similar,external_ids',
     });
-    return { ...data, media_type: type };
+    const imdbId = data.imdb_id || data.external_ids?.imdb_id;
+    return { ...data, imdb_id: imdbId, media_type: type };
   } catch (err) {
     console.warn(`Falling back for details ${id}:`, err);
     const fallback = FALLBACK_ITEMS.find((i) => i.id === id);
@@ -286,6 +287,75 @@ export async function fetchTVSeason(tvId: number, seasonNumber: number): Promise
         vote_average: 8.2,
       })),
     };
+  }
+}
+
+export async function fetchTVDetails(tvId: number): Promise<MediaItem | null> {
+  try {
+    const data = await tmdbFetch<any>(`/tv/${tvId}`, {
+      append_to_response: 'external_ids',
+    });
+    const imdbId = data.imdb_id || data.external_ids?.imdb_id;
+    return {
+      ...data,
+      imdb_id: imdbId,
+      media_type: 'tv',
+    };
+  } catch (err) {
+    console.warn(`Error fetching TV details for ${tvId}:`, err);
+    return null;
+  }
+}
+
+export async function fetchAnime(
+  type: 'all' | 'series' | 'movies' = 'all',
+  page: number = 1
+): Promise<MediaItem[]> {
+  try {
+    if (type === 'movies') {
+      const data = await tmdbFetch<{ results: MediaItem[] }>('/discover/movie', {
+        with_genres: 16,
+        with_original_language: 'ja',
+        sort_by: 'popularity.desc',
+        page,
+      });
+      return (data.results || []).map((item) => ({ ...item, media_type: 'movie' }));
+    } else if (type === 'series') {
+      const data = await tmdbFetch<{ results: MediaItem[] }>('/discover/tv', {
+        with_genres: 16,
+        with_original_language: 'ja',
+        sort_by: 'popularity.desc',
+        page,
+      });
+      return (data.results || []).map((item) => ({ ...item, media_type: 'tv' }));
+    } else {
+      const [tvData, movieData] = await Promise.all([
+        tmdbFetch<{ results: MediaItem[] }>('/discover/tv', {
+          with_genres: 16,
+          with_original_language: 'ja',
+          sort_by: 'popularity.desc',
+          page,
+        }),
+        tmdbFetch<{ results: MediaItem[] }>('/discover/movie', {
+          with_genres: 16,
+          with_original_language: 'ja',
+          sort_by: 'popularity.desc',
+          page,
+        }),
+      ]);
+      const tvResults = (tvData.results || []).map((i) => ({ ...i, media_type: 'tv' as const }));
+      const movieResults = (movieData.results || []).map((i) => ({ ...i, media_type: 'movie' as const }));
+      const combined: MediaItem[] = [];
+      const maxLen = Math.max(tvResults.length, movieResults.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (tvResults[i]) combined.push(tvResults[i]);
+        if (movieResults[i]) combined.push(movieResults[i]);
+      }
+      return combined;
+    }
+  } catch (err) {
+    console.warn('Error fetching anime:', err);
+    return [];
   }
 }
 

@@ -19,6 +19,7 @@ import {
   fetchPopular,
   fetchTopRated,
   fetchByGenre,
+  fetchAnime,
   GENRE_MAP,
   getPosterUrl,
 } from './services/tmdb';
@@ -35,7 +36,7 @@ const CATEGORIES = ['All', 'Action', 'Comedy', 'Horror', 'Sci-Fi', 'Drama'];
 
 export default function App() {
   // Navigation & Active View
-  const [currentTab, setCurrentTab] = useState<'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history'>('home');
   const [activeMedia, setActiveMedia] = useState<MediaItem | null>(null);
   const [playerSeason, setPlayerSeason] = useState(1);
   const [playerEpisode, setPlayerEpisode] = useState(1);
@@ -57,6 +58,12 @@ export default function App() {
   const [actionMovies, setActionMovies] = useState<MediaItem[]>([]);
   const [sciFiMovies, setSciFiMovies] = useState<MediaItem[]>([]);
   const [genreFilteredItems, setGenreFilteredItems] = useState<MediaItem[]>([]);
+
+  // Anime Collection
+  const [animeCarouselItems, setAnimeCarouselItems] = useState<MediaItem[]>([]);
+  const [animeCatalogItems, setAnimeCatalogItems] = useState<MediaItem[]>([]);
+  const [animeFilter, setAnimeFilter] = useState<'all' | 'series' | 'movies'>('all');
+  const [loadingAnime, setLoadingAnime] = useState(false);
 
   // Filtering
   const [activeCategory, setActiveCategory] = useState('All');
@@ -117,13 +124,14 @@ export default function App() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [trending, popMovies, popTV, topMovies, action, sciFi] = await Promise.all([
+        const [trending, popMovies, popTV, topMovies, action, sciFi, animeList] = await Promise.all([
           fetchTrending('all', 'day'),
           fetchPopular('movie'),
           fetchPopular('tv'),
           fetchTopRated('movie'),
           fetchByGenre('movie', GENRE_MAP['Action'].movie),
           fetchByGenre('movie', GENRE_MAP['Sci-Fi'].movie),
+          fetchAnime('all', 1),
         ]);
 
         setTrendingAll(trending);
@@ -133,6 +141,8 @@ export default function App() {
         setTopRatedMovies(topMovies);
         setActionMovies(action);
         setSciFiMovies(sciFi);
+        setAnimeCarouselItems(animeList);
+        setAnimeCatalogItems(animeList);
 
         if (trending.length > 0) {
           // Choose an engaging movie/show with poster & backdrop for Hero
@@ -146,6 +156,17 @@ export default function App() {
 
     loadData();
   }, [settings.tmdbApiKey]);
+
+  // Load Anime catalog when user switches to Anime tab or changes anime filter
+  useEffect(() => {
+    if (currentTab === 'anime') {
+      setLoadingAnime(true);
+      fetchAnime(animeFilter).then((items) => {
+        setAnimeCatalogItems(items);
+        setLoadingAnime(false);
+      });
+    }
+  }, [currentTab, animeFilter]);
 
   // Handle category changes in trending/catalog
   const handleSelectCategory = async (category: string) => {
@@ -407,6 +428,17 @@ export default function App() {
                   onToggleWatchlist={toggleWatchlist}
                   watchlistIds={watchlistIds}
                 />
+
+                {/* Anime Hits & Shonen Series */}
+                <MediaCarousel
+                  title="⛩️ Top Anime Series & Movies"
+                  subtitle="Popular Japanese anime series, movies & latest seasons"
+                  items={animeCarouselItems}
+                  onPlay={(item) => handlePlayMedia(item)}
+                  onOpenDetails={(item) => setDetailMedia(item)}
+                  onToggleWatchlist={toggleWatchlist}
+                  watchlistIds={watchlistIds}
+                />
               </div>
             )}
 
@@ -571,6 +603,99 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* View: Anime Catalog */}
+            {currentTab === 'anime' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 space-y-6 animate-fade-in">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-2">
+                      <Sparkles className="w-6 h-6 text-red-500" />
+                      <span>Anime Universe (アニメ)</span>
+                    </h1>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Stream legendary Japanese anime series, movies, and all seasons in Full HD 1080p
+                    </p>
+                  </div>
+
+                  {/* Filter Sub-Tabs */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                    {[
+                      { id: 'all', label: 'All Anime' },
+                      { id: 'series', label: 'Anime Series (TV)' },
+                      { id: 'movies', label: 'Anime Movies' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setAnimeFilter(tab.id as 'all' | 'series' | 'movies')}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition shrink-0 cursor-pointer ${
+                          animeFilter === tab.id
+                            ? 'bg-[#e50914] text-white shadow-md'
+                            : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {loadingAnime ? (
+                  <div className="flex flex-col items-center justify-center py-24 space-y-3">
+                    <div className="w-10 h-10 rounded-full border-4 border-red-600/30 border-t-red-600 animate-spin" />
+                    <p className="text-xs text-zinc-400">Loading top anime titles...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                    {animeCatalogItems.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => setDetailMedia(item)}
+                        className="group cursor-pointer space-y-2 bg-zinc-900/60 p-2 rounded-xl border border-zinc-800 hover:border-red-600 transition"
+                      >
+                        <div className="relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-black shadow">
+                          <img
+                            src={getPosterUrl(item.poster_path, 'w500')}
+                            alt={item.name || item.title || 'Anime'}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                            loading="lazy"
+                          />
+                          <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-[#e50914] text-white text-[9px] font-bold rounded">
+                            {item.media_type === 'tv' ? 'SERIES' : 'MOVIE'}
+                          </div>
+                          <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-purple-950/80 border border-purple-500/40 text-purple-300 text-[8px] font-black rounded uppercase">
+                            SUB / DUB
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePlayMedia(item);
+                              }}
+                              className="p-3 bg-[#e50914] text-white rounded-full shadow-lg hover:scale-110 transition"
+                            >
+                              <Play className="w-4 h-4 fill-white" />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-bold text-white truncate group-hover:text-red-400">
+                            {item.name || item.title}
+                          </h3>
+                          <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-0.5">
+                            <span>{(item.first_air_date || item.release_date || '').slice(0, 4)}</span>
+                            <span className="flex items-center gap-0.5 text-amber-400 font-semibold">
+                              <Star className="w-2.5 h-2.5 fill-amber-400" />
+                              {item.vote_average?.toFixed(1) || '8.5'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

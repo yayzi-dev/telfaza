@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Film, Tv, Flame, Bookmark, History, X, Star, Menu, Play, Home } from 'lucide-react';
+import { Search, Film, Tv, Flame, Bookmark, History, X, Star, Menu, Play, Home, Sparkles } from 'lucide-react';
 import { MediaItem } from '../types';
 import { searchCatalog, getPosterUrl } from '../services/tmdb';
 
 interface NavbarProps {
-  currentTab: 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history';
-  onSelectTab: (tab: 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history') => void;
+  currentTab: 'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history';
+  onSelectTab: (tab: 'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history') => void;
   onOpenMedia: (item: MediaItem) => void;
   onOpenSettings?: () => void;
   watchlistCount: number;
@@ -74,16 +74,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   interface NavLinkItem {
-    id: 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history';
+    id: 'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history';
     label: string;
     icon?: React.ComponentType<{ className?: string }>;
     count?: number;
+    badge?: string;
   }
 
   const navLinks: NavLinkItem[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'movies', label: 'Movies', icon: Film },
     { id: 'tv', label: 'TV Series', icon: Tv },
+    { id: 'anime', label: 'Anime', icon: Sparkles, badge: 'HOT' },
     { id: 'trending', label: 'Trending', icon: Flame },
     { id: 'watchlist', label: 'My List', count: watchlistCount, icon: Bookmark },
     { id: 'history', label: 'History', icon: History },
@@ -128,6 +130,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <span>{link.label}</span>
+                  {link.badge && (
+                    <span className="px-1.5 py-0.2 bg-gradient-to-r from-red-600 to-pink-600 text-[8px] text-white rounded-full font-black uppercase tracking-wider">
+                      {link.badge}
+                    </span>
+                  )}
                   {link.count !== undefined && link.count > 0 && (
                     <span className="px-1.5 py-0.2 bg-[#e50914] text-[10px] text-white rounded-full font-bold">
                       {link.count}
