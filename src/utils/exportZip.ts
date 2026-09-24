@@ -85,13 +85,13 @@ FlixStream HD is a high-performance, Netflix-style video streaming application b
 
 ## 🚀 Features
 - **Real TMDB v3 Catalog**: Live trending, top-rated, and categorized Movies and TV Series with backdrops, high-res posters, cast, and overviews.
-- **6 Ultra HD Streaming Mirrors**:
-  1. 123Embed Ultra HD
-  2. AnyEmbed (SmashyStream)
-  3. AutoEmbed CC
-  4. Videasy HD
-  5. VidSrc Prime
-  6. 2Embed Skin
+- **6 Ultra HD Streaming Mirrors (Verified for In-Page Streaming)**:
+  1. VidLink Pro Ultra (Zero Buffer & 4K)
+  2. SuperEmbed VIP (Multi-Source Mirror)
+  3. Vidflix Prime (High Speed CDN)
+  4. MultiEmbed HD (Multi-Audio & Multi-Language)
+  5. 2Embed Cinema (Direct Mirror)
+  6. VidSrc Cloud (Backup Server)
 - **TV Show Episode Picker**: Instant Season & Episode selector with direct episode-by-episode routing.
 - **CPA Monetization Locker (15-Second Hook)**: High-converting OGAds content locker prompt with dynamic tracking sub-IDs (\`aff_sub\` and \`aff_sub2\`).
 - **Direct Tab Popout**: Fallback for browsers with strict adblockers or iframe sandboxing.

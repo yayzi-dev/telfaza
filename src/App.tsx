@@ -812,17 +812,17 @@ export default function App() {
           </p>
           <div className="flex items-center gap-4 text-zinc-400">
             <button
-              onClick={() => setShowSettings(true)}
-              className="hover:text-white transition cursor-pointer"
-            >
-              Settings
-            </button>
-            <span>•</span>
-            <button
               onClick={() => setCurrentTab('watchlist')}
               className="hover:text-white transition cursor-pointer"
             >
               My List
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setCurrentTab('history')}
+              className="hover:text-white transition cursor-pointer"
+            >
+              Watch History
             </button>
             <span>•</span>
             <span className="text-emerald-400 font-semibold">6 Mirrors Online</span>

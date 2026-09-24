@@ -2,81 +2,81 @@ import { StreamingServer } from '../types';
 
 export const STREAMING_SERVERS: StreamingServer[] = [
   {
-    id: '123embed',
-    name: 'Server 1: 123Embed Ultra HD',
-    badge: '4K Ultra HD',
-    quality: '4K / 1080p',
-    speed: 'Ultra Fast',
+    id: 'yapgrid',
+    name: 'Server 1: YapGrid Ultra (Ad-Free 4K)',
+    badge: 'DEFAULT HD',
+    quality: '4K / 1080p Ultra HD',
+    speed: 'Instant Play',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
-        ? `https://play2.123embed.net/movie/${id}`
-        : `https://play2.123embed.net/tv/${id}/${season}/${episode}`;
-    },
-  },
-  {
-    id: 'anyembed',
-    name: 'Server 2: AnyEmbed (Smashy)',
-    badge: 'VIP Stream',
-    quality: '1080p Full HD',
-    speed: 'High Speed',
-    isReliable: true,
-    getUrl: (type, id, season = 1, episode = 1) => {
-      return type === 'movie'
-        ? `https://anyembed.xyz/embed/movie/${id}`
-        : `https://anyembed.xyz/embed/tv/${id}/${season}/${episode}`;
+        ? `https://yapgrid.com/embed/movie/${id}`
+        : `https://yapgrid.com/embed/tv/${id}/${season}/${episode}`;
     },
   },
   {
     id: 'autoembed',
-    name: 'Server 3: AutoEmbed CC',
-    badge: 'Multi-Audio',
-    quality: '1080p / 720p',
-    speed: 'Stable CDN',
+    name: 'Server 2: AutoEmbed HD (High Speed)',
+    badge: 'FAST CDN',
+    quality: '1080p Full HD',
+    speed: 'Zero Buffer',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
-        ? `https://player.autoembed.cc/embed/movie/${id}`
-        : `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`;
+        ? `https://autoembed.co/movie/tmdb/${id}`
+        : `https://autoembed.co/tv/tmdb/${id}/${season}/${episode}`;
     },
   },
   {
-    id: 'videasy',
-    name: 'Server 4: Videasy HD',
-    badge: 'Zero Buffer',
+    id: 'multiembed',
+    name: 'Server 3: MultiEmbed VIP (Multi-Source)',
+    badge: 'MULTI-AUDIO',
     quality: '1080p HD',
-    speed: 'Fast CDN',
+    speed: 'Global CDN',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
-        ? `https://player.videasy.net/movie/${id}`
-        : `https://player.videasy.net/tv/${id}/${season}/${episode}`;
-    },
-  },
-  {
-    id: 'vidsrc',
-    name: 'Server 5: VidSrc Prime',
-    badge: 'Primary Server',
-    quality: '1080p HD',
-    speed: 'High Bandwidth',
-    isReliable: true,
-    getUrl: (type, id, season = 1, episode = 1) => {
-      return type === 'movie'
-        ? `https://vidsrc.to/embed/movie/${id}`
-        : `https://vidsrc.to/embed/tv/${id}/${season}/${episode}`;
+        ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
+        : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
     },
   },
   {
     id: '2embed',
-    name: 'Server 6: 2Embed Cinema',
-    badge: 'Backup HD',
-    quality: '1080p / 720p',
-    speed: 'Global CDN',
+    name: 'Server 4: 2Embed Cinema (Classic HD)',
+    badge: 'CINEMA HQ',
+    quality: '1080p HD',
+    speed: 'Direct CDN',
     isReliable: true,
     getUrl: (type, id, season = 1, episode = 1) => {
       return type === 'movie'
         ? `https://www.2embed.cc/embed/${id}`
         : `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`;
+    },
+  },
+  {
+    id: 'smashy',
+    name: 'Server 5: Smashy VIP (Zero Lag)',
+    badge: 'ULTRA STABLE',
+    quality: '1080p / 720p',
+    speed: 'High Speed CDN',
+    isReliable: true,
+    getUrl: (type, id, season = 1, episode = 1) => {
+      return type === 'movie'
+        ? `https://embed.smashystream.com/playere.php?tmdb=${id}`
+        : `https://embed.smashystream.com/playere.php?tmdb=${id}&season=${season}&episode=${episode}`;
+    },
+  },
+  {
+    id: 'vidsrc',
+    name: 'Server 6: VidSrc VIP (Backup Direct)',
+    badge: 'BACKUP VIP',
+    quality: '1080p HD',
+    speed: 'Cloud Mirror',
+    isReliable: true,
+    getUrl: (type, id, season = 1, episode = 1) => {
+      return type === 'movie'
+        ? `https://vidsrc.to/embed/movie/${id}`
+        : `https://vidsrc.to/embed/tv/${id}/${season}/${episode}`;
     },
   },
 ];

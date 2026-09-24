@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Film, Tv, Flame, Bookmark, History, Settings, Download, X, Star, Menu, Play, Home } from 'lucide-react';
+import { Search, Film, Tv, Flame, Bookmark, History, X, Star, Menu, Play, Home } from 'lucide-react';
 import { MediaItem } from '../types';
 import { searchCatalog, getPosterUrl } from '../services/tmdb';
-import { generateAndDownloadZip } from '../utils/exportZip';
 
 interface NavbarProps {
   currentTab: 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history';
   onSelectTab: (tab: 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history') => void;
   onOpenMedia: (item: MediaItem) => void;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
   watchlistCount: number;
 }
 
@@ -16,7 +15,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onSelectTab,
   onOpenMedia,
-  onOpenSettings,
   watchlistCount,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -25,7 +23,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [downloadingZip, setDownloadingZip] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Scroll listener for translucent Netflix-style blur navbar
@@ -75,17 +72,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleDownload = async () => {
-    setDownloadingZip(true);
-    try {
-      await generateAndDownloadZip();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setDownloadingZip(false);
-    }
-  };
 
   interface NavLinkItem {
     id: 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'history';
@@ -235,28 +221,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Download Source ZIP Button */}
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={downloadingZip}
-            title="Download full project source code as ZIP"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-full border border-zinc-700/60 transition cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-red-400" />
-            <span>{downloadingZip ? 'Zipping...' : 'Download ZIP'}</span>
-          </button>
-
-          {/* Settings Button */}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="FlixStream Settings (TMDB API & Locker)"
-            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-full transition cursor-pointer"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-
           {/* Mobile Menu Button */}
           <button
             type="button"
@@ -297,29 +261,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             );
           })}
-
-          <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
-            <button
-              onClick={() => {
-                handleDownload();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 text-xs text-zinc-300 py-1.5"
-            >
-              <Download className="w-4 h-4 text-red-400" />
-              <span>Download ZIP</span>
-            </button>
-            <button
-              onClick={() => {
-                onOpenSettings();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 text-xs text-zinc-300 py-1.5"
-            >
-              <Settings className="w-4 h-4 text-amber-400" />
-              <span>Settings</span>
-            </button>
-          </div>
         </div>
       )}
     </header>

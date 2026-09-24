@@ -49,6 +49,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [iframeKey, setIframeKey] = useState(0);
   const [isCinemaExpanded, setIsCinemaExpanded] = useState(false);
   const [showEpisodeDrawer, setShowEpisodeDrawer] = useState(false);
+  const [isPlayerLoading, setIsPlayerLoading] = useState(true);
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +62,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     // Scroll smoothly to top of player
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [media.id, currentSeason, currentEpisode]);
+
+  // Reset loading state whenever server or episode changes
+  useEffect(() => {
+    setIsPlayerLoading(true);
+    const timer = setTimeout(() => {
+      setIsPlayerLoading(false);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [selectedServer.id, currentSeason, currentEpisode, iframeKey]);
 
   // Fetch TV Episodes when season changes
   useEffect(() => {
@@ -134,23 +144,21 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <span>Back to Browse</span>
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className="hidden sm:flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>Full-Length 100% Uncut HD Stream</span>
+              <span>Full-Length 100% Free HD Stream</span>
             </span>
 
-            {/* Direct Popout Tab Button */}
-            <a
-              href={activeStreamUrl}
-              target="_blank"
-              rel="noreferrer"
-              title="Open stream directly in a new window/tab (bypasses browser adblock or iframe policy)"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#e50914] hover:bg-red-700 text-white font-semibold rounded-lg shadow-md shadow-red-950/40 transition cursor-pointer"
+            {/* In-Site Theater Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsCinemaExpanded(!isCinemaExpanded)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-lg transition font-medium cursor-pointer"
             >
-              <span>Direct Tab</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span>{isCinemaExpanded ? 'Standard View' : 'Theater Mode'}</span>
+            </button>
           </div>
         </div>
 
@@ -359,24 +367,67 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           </div>
         )}
 
-        {/* Responsive Cinema Player Container (16:9) */}
+        {/* Responsive Cinema Player Container (16:9 / Theater Mode) */}
         <div
           ref={playerContainerRef}
           className={`relative w-full rounded-2xl overflow-hidden bg-black border border-zinc-800 shadow-2xl shadow-black transition-all duration-300 ${
-            isCinemaExpanded ? 'aspect-[21/9]' : 'aspect-video'
+            isCinemaExpanded ? 'w-full lg:h-[76vh] aspect-video' : 'aspect-video'
           }`}
         >
+          {/* In-Site Loading Buffer Indicator */}
+          {isPlayerLoading && (
+            <div className="absolute inset-0 bg-[#0c0c0c]/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-fade-in pointer-events-none">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full border-4 border-zinc-800 border-t-[#e50914] animate-spin" />
+                <Play className="w-5 h-5 text-[#e50914] absolute inset-0 m-auto fill-[#e50914]" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-white tracking-wide">
+                  Connecting to {selectedServer.name}...
+                </p>
+                <p className="text-xs text-zinc-400">
+                  Loading high-speed 4K/HD stream player inside your browser
+                </p>
+              </div>
+            </div>
+          )}
+
           <iframe
-            key={iframeKey}
+            key={`${selectedServer.id}-${media.id}-${currentSeason}-${currentEpisode}-${iframeKey}`}
             src={activeStreamUrl}
             title={`${title} Stream Player`}
-            className="w-full h-full border-0"
+            className="w-full h-full border-0 relative z-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
+            referrerPolicy="no-referrer"
+            loading="eager"
+            onLoad={() => setIsPlayerLoading(false)}
           />
 
           {/* Floating Player Utility Toolbar */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20 opacity-40 hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20 opacity-50 hover:opacity-100 transition-opacity duration-200">
+            <button
+              type="button"
+              onClick={() => {
+                const currentIndex = STREAMING_SERVERS.findIndex((s) => s.id === selectedServer.id);
+                const nextIndex = (currentIndex + 1) % STREAMING_SERVERS.length;
+                setSelectedServer(STREAMING_SERVERS[nextIndex]);
+                handleReloadPlayer();
+              }}
+              title="Switch to Next Streaming Server"
+              className="px-2.5 py-1.5 bg-black/80 hover:bg-black text-white text-xs font-semibold rounded-lg backdrop-blur-md border border-white/10 transition cursor-pointer flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3 text-[#e50914]" />
+              <span className="hidden sm:inline">Next Server</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCinemaExpanded(!isCinemaExpanded)}
+              title={isCinemaExpanded ? 'Exit Theater Mode' : 'Theater Mode'}
+              className="p-2 bg-black/80 hover:bg-black text-white rounded-lg backdrop-blur-md border border-white/10 transition cursor-pointer"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
             <button
               type="button"
               onClick={handleReloadPlayer}
@@ -400,10 +451,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-xs text-zinc-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Currently connected to {selectedServer.name} ({selectedServer.quality})</span>
+            <span>Currently playing on <strong className="text-white">{selectedServer.name}</strong> ({selectedServer.quality})</span>
           </div>
           <div className="flex items-center gap-2">
-            <span>Video not starting?</span>
+            <span>Stream buffering or paused?</span>
             <button
               type="button"
               onClick={() => {
@@ -412,19 +463,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 setSelectedServer(STREAMING_SERVERS[nextIndex]);
                 handleReloadPlayer();
               }}
-              className="text-red-400 hover:text-red-300 font-semibold underline underline-offset-2 cursor-pointer"
+              className="px-2.5 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-bold rounded-lg border border-red-500/30 transition cursor-pointer flex items-center gap-1"
             >
-              Try Next Server
+              <RefreshCw className="w-3 h-3" />
+              <span>Switch Server</span>
             </button>
-            <span>or use</span>
-            <a
-              href={activeStreamUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-white hover:text-red-400 font-semibold underline underline-offset-2"
-            >
-              Direct Tab ↗
-            </a>
           </div>
         </div>
 
