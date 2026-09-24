@@ -270,12 +270,11 @@ export async function fetchTVSeason(tvId: number, seasonNumber: number): Promise
     return data;
   } catch (err) {
     console.warn(`Error fetching season ${seasonNumber} for tv ${tvId}:`, err);
-    // Return mock season with 10 episodes so season/episode picker always has real working content
     return {
       id: seasonNumber,
       season_number: seasonNumber,
       name: `Season ${seasonNumber}`,
-      overview: 'Full HD Season stream available across all 6 servers.',
+      overview: 'Full HD Season stream available across all servers.',
       episodes: Array.from({ length: 10 }, (_, i) => ({
         id: (tvId * 100) + (seasonNumber * 20) + (i + 1),
         name: `Episode ${i + 1}`,
@@ -359,19 +358,43 @@ export async function fetchAnime(
   }
 }
 
-export async function searchCatalog(query: string): Promise<MediaItem[]> {
+export async function searchCatalog(query: string, page: number = 1): Promise<MediaItem[]> {
   if (!query.trim()) return [];
   try {
-    const data = await tmdbFetch<{ results: MediaItem[] }>('/search/multi', {
+    const data = await tmdbFetch<{ results: MediaItem[]; total_pages: number }>('/search/multi', {
       query: query.trim(),
       include_adult: false,
+      page,
     });
-    return (data.results || [])
-      .filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
+    
+    const items = (data.results || [])
+      .filter((item) => (item.media_type === 'movie' || item.media_type === 'tv') && (item.poster_path || item.backdrop_path))
       .map((item) => ({
         ...item,
         media_type: item.media_type || (item.title ? 'movie' : 'tv'),
       }));
+
+    // If first page and less than 15 results, try fetching page 2 to give a full rich grid
+    if (page === 1 && (data.total_pages || 1) > 1 && items.length < 15) {
+      try {
+        const page2 = await tmdbFetch<{ results: MediaItem[] }>('/search/multi', {
+          query: query.trim(),
+          include_adult: false,
+          page: 2,
+        });
+        const items2 = (page2.results || [])
+          .filter((item) => (item.media_type === 'movie' || item.media_type === 'tv') && (item.poster_path || item.backdrop_path))
+          .map((item) => ({
+            ...item,
+            media_type: item.media_type || (item.title ? 'movie' : 'tv'),
+          }));
+        return [...items, ...items2];
+      } catch {
+        return items;
+      }
+    }
+
+    return items;
   } catch (err) {
     console.warn(`Error searching TMDB for "${query}":`, err);
     return FALLBACK_ITEMS.filter((i) => {

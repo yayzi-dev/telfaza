@@ -11,6 +11,10 @@ import {
   Info,
   Layers,
   Star,
+  Search,
+  Loader2,
+  X,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { MediaItem, WatchHistoryItem, AppSettings } from './types';
 import {
@@ -20,6 +24,7 @@ import {
   fetchTopRated,
   fetchByGenre,
   fetchAnime,
+  searchCatalog,
   GENRE_MAP,
   getPosterUrl,
 } from './services/tmdb';
@@ -36,10 +41,16 @@ const CATEGORIES = ['All', 'Action', 'Comedy', 'Horror', 'Sci-Fi', 'Drama'];
 
 export default function App() {
   // Navigation & Active View
-  const [currentTab, setCurrentTab] = useState<'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history' | 'search'>('home');
   const [activeMedia, setActiveMedia] = useState<MediaItem | null>(null);
   const [playerSeason, setPlayerSeason] = useState(1);
   const [playerEpisode, setPlayerEpisode] = useState(1);
+
+  // Search View State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchFilter, setSearchFilter] = useState<'all' | 'movie' | 'tv'>('all');
 
   // Modals
   const [detailMedia, setDetailMedia] = useState<MediaItem | null>(null);
@@ -138,6 +149,10 @@ export default function App() {
       history: {
         title: 'Continue Watching & Stream History – Perkvex',
         desc: 'Pick up right where you left off. Continue watching your favorite movies and TV episodes on Perkvex.',
+      },
+      search: {
+        title: searchQuery ? `Search: "${searchQuery}" – Perkvex Cinema` : 'Search Movies & TV Shows – Perkvex',
+        desc: `Explore and stream full-length movies, TV series, and anime titles matching "${searchQuery || 'all'}" in 1080p Ultra HD on Perkvex.`,
       },
     };
 
@@ -298,6 +313,25 @@ export default function App() {
     // Media stream active
   };
 
+  // Execute global search across entire movies & series catalog
+  const handleExecuteSearch = async (query: string) => {
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return;
+    setSearchQuery(cleanQuery);
+    setCurrentTab('search');
+    setActiveMedia(null);
+    setIsSearching(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      const results = await searchCatalog(cleanQuery);
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Search error:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   // Trigger test locker from settings
   const handleTriggerTestLocker = () => {
     triggerNativeOGAdsLocker();
@@ -318,6 +352,7 @@ export default function App() {
         onOpenMedia={(item) => {
           handlePlayMedia(item);
         }}
+        onSearchSubmit={handleExecuteSearch}
         onOpenSettings={() => setShowSettings(true)}
         watchlistCount={watchlist.length}
       />
@@ -947,6 +982,231 @@ export default function App() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* View: Dedicated Full-Page Search Results */}
+            {currentTab === 'search' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 space-y-6 animate-fade-in">
+                {/* Search Header with embedded Search Input & Filters */}
+                <div className="pb-4 border-b border-zinc-800 space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-2">
+                        <Search className="w-6 h-6 text-red-500" />
+                        <span>Search Results</span>
+                      </h1>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        {searchQuery ? (
+                          <>
+                            Showing results for <span className="text-white font-bold">"{searchQuery}"</span> across the entire global catalog
+                          </>
+                        ) : (
+                          'Search any movie, TV series, or anime in world cinema'
+                        )}
+                      </p>
+                    </div>
+
+                    {/* In-Page Quick Search Bar */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (searchQuery.trim()) handleExecuteSearch(searchQuery);
+                      }}
+                      className="relative w-full md:w-80 flex items-center"
+                    >
+                      <Search className="w-4 h-4 text-zinc-400 absolute left-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search movies, shows, anime..."
+                        className="w-full pl-9 pr-20 py-2 bg-zinc-900 border border-zinc-700 focus:border-[#e50914] rounded-xl text-xs text-white placeholder-zinc-500 outline-none"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSearching}
+                        className="absolute right-1.5 px-3 py-1 bg-[#e50914] hover:bg-red-700 text-white text-[11px] font-bold rounded-lg transition cursor-pointer"
+                      >
+                        {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Search'}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Filter Tabs: All, Movies, TV Series */}
+                  {searchResults.length > 0 && (
+                    <div className="flex items-center gap-2 pt-1">
+                      {[
+                        { id: 'all', label: `All Results (${searchResults.length})` },
+                        {
+                          id: 'movie',
+                          label: `Movies (${searchResults.filter((i) => i.media_type === 'movie' || !i.first_air_date).length})`,
+                        },
+                        {
+                          id: 'tv',
+                          label: `TV Series (${searchResults.filter((i) => i.media_type === 'tv' || !!i.first_air_date).length})`,
+                        },
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setSearchFilter(tab.id as 'all' | 'movie' | 'tv')}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
+                            searchFilter === tab.id
+                              ? 'bg-[#e50914] text-white shadow-md'
+                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loading Skeleton Grid */}
+                {isSearching && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <div key={i} className="space-y-2 animate-pulse bg-zinc-900/60 p-2 rounded-xl border border-zinc-800">
+                        <div className="aspect-[2/3] w-full bg-zinc-800 rounded-lg" />
+                        <div className="h-3.5 bg-zinc-800 rounded w-3/4" />
+                        <div className="h-3 bg-zinc-850 rounded w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search Results Grid */}
+                {!isSearching && searchResults.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                    {searchResults
+                      .filter((item) => {
+                        if (searchFilter === 'movie') return item.media_type === 'movie' || !item.first_air_date;
+                        if (searchFilter === 'tv') return item.media_type === 'tv' || !!item.first_air_date;
+                        return true;
+                      })
+                      .map((item) => {
+                        const title = item.title || item.name || 'Untitled';
+                        const year = (item.release_date || item.first_air_date || '').slice(0, 4);
+                        const isTv = item.media_type === 'tv' || !!item.first_air_date;
+                        const inWatchlist = watchlistIds.has(item.id);
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="group relative space-y-2 bg-zinc-900/60 p-2 rounded-xl border border-zinc-800 hover:border-red-600 transition"
+                          >
+                            <div
+                              onClick={() => setDetailMedia(item)}
+                              className="relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-black shadow cursor-pointer"
+                            >
+                              <img
+                                src={getPosterUrl(item.poster_path, 'w500')}
+                                alt={title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                loading="lazy"
+                              />
+                              <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-sm text-[9px] font-bold text-zinc-300 rounded uppercase">
+                                {isTv ? 'TV Show' : 'Movie'}
+                              </div>
+                              <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-[#e50914] text-white text-[9px] font-bold rounded">
+                                HD
+                              </div>
+
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePlayMedia(item);
+                                  }}
+                                  title="Watch Now"
+                                  className="p-3 bg-[#e50914] text-white rounded-full shadow-lg hover:scale-110 active:scale-95 transition cursor-pointer"
+                                >
+                                  <Play className="w-4 h-4 fill-white" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleWatchlist(item);
+                                  }}
+                                  title={inWatchlist ? 'Remove from My List' : 'Add to My List'}
+                                  className="p-2.5 bg-black/80 hover:bg-black text-white rounded-full transition cursor-pointer"
+                                >
+                                  <Bookmark className={`w-3.5 h-3.5 ${inWatchlist ? 'fill-red-500 text-red-500' : ''}`} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h3
+                                onClick={() => setDetailMedia(item)}
+                                className="text-xs font-bold text-white truncate cursor-pointer hover:text-red-400"
+                              >
+                                {title}
+                              </h3>
+                              <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-0.5">
+                                <span>{year || '2024'}</span>
+                                <span className="flex items-center gap-0.5 text-amber-400 font-semibold">
+                                  <Star className="w-2.5 h-2.5 fill-amber-400" />
+                                  {item.vote_average?.toFixed(1) || '7.8'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+                {/* Empty State / Not Found with Recommendations */}
+                {!isSearching && searchResults.length === 0 && (
+                  <div className="space-y-8 pt-6">
+                    <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6">
+                      <Search className="w-12 h-12 text-zinc-600" />
+                      <h3 className="text-lg font-bold text-zinc-200">
+                        {searchQuery ? `No exact matches found for "${searchQuery}"` : 'Type a title to search'}
+                      </h3>
+                      <p className="text-xs text-zinc-400 max-w-md">
+                        Make sure the spelling is correct, or explore trending box-office blockbusters below.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-red-500" />
+                        <span>Popular Movies You Might Like</span>
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                        {popularMovies.slice(0, 6).map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => handlePlayMedia(item)}
+                            className="group cursor-pointer space-y-2 bg-zinc-900/60 p-2 rounded-xl border border-zinc-800 hover:border-red-600 transition"
+                          >
+                            <div className="aspect-[2/3] w-full rounded-lg overflow-hidden relative">
+                              <img
+                                src={getPosterUrl(item.poster_path, 'w500')}
+                                alt={item.title || 'Movie'}
+                                className="w-full h-full object-cover group-hover:scale-105 transition"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <div className="p-3 bg-[#e50914] text-white rounded-full shadow-lg">
+                                  <Play className="w-4 h-4 fill-white" />
+                                </div>
+                              </div>
+                            </div>
+                            <h4 className="text-xs font-semibold text-white truncate group-hover:text-red-400">
+                              {item.title}
+                            </h4>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

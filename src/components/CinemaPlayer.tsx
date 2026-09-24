@@ -22,7 +22,7 @@ import {
 import { MediaItem, TVEpisode, CastMember, SeasonSummary } from '../types';
 import { STREAMING_SERVERS } from '../config/servers';
 import { fetchTVSeason, fetchTVDetails, fetchDetails, fetchCredits, fetchSimilar, getPosterUrl, getBackdropUrl } from '../services/tmdb';
-import { triggerNativeOGAdsLocker } from '../utils/locker';
+import { triggerNativeOGAdsLocker, subscribeToLockerUnlock, markMediaUnlocked } from '../utils/locker';
 
 interface CinemaPlayerProps {
   media: MediaItem;
@@ -94,6 +94,71 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       setIsPlayerLoading(false);
     }
   }, [isLocked, media.id]);
+
+  // Auto-resume when OGAds completion event or callback is fired
+  useEffect(() => {
+    const unsubscribe = subscribeToLockerUnlock(() => {
+      markMediaUnlocked(media.id);
+      setIsLockedInternal(false);
+      setIsCountingDown(false);
+      setHasStartedPlayback(true);
+      setIsPlayerLoading(false);
+    });
+    return unsubscribe;
+  }, [media.id]);
+
+  // MutationObserver to detect when the OGAds locker overlay is removed from DOM by OGAds script upon completion
+  useEffect(() => {
+    if (!effectiveLocked) return;
+
+    let hadLockerElement = false;
+    const isLockerEl = (el: Element) => {
+      const id = el.id?.toLowerCase() || '';
+      const cls = el.className?.toString().toLowerCase() || '';
+      const src = (el as HTMLIFrameElement).src?.toLowerCase() || '';
+      return (
+        id.includes('og_') ||
+        id.includes('appsave') ||
+        cls.includes('og_') ||
+        src.includes('appsave.online')
+      );
+    };
+
+    const checkExisting = () => {
+      const els = document.querySelectorAll('*');
+      for (let i = 0; i < els.length; i++) {
+        if (isLockerEl(els[i])) {
+          hadLockerElement = true;
+          return;
+        }
+      }
+    };
+
+    checkExisting();
+
+    const observer = new MutationObserver(() => {
+      let stillExists = false;
+      const els = document.querySelectorAll('*');
+      for (let i = 0; i < els.length; i++) {
+        if (isLockerEl(els[i])) {
+          stillExists = true;
+          hadLockerElement = true;
+          break;
+        }
+      }
+
+      // If the locker element was present and has now been closed/removed by OGAds
+      if (hadLockerElement && !stillExists) {
+        markMediaUnlocked(media.id);
+        setIsLockedInternal(false);
+        setIsCountingDown(false);
+        setHasStartedPlayback(true);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [effectiveLocked, media.id]);
 
   // Start 20-Second Countdown: ONLY starts if user has initiated playback AND 1 second has elapsed ("ila luser mazal mabda khas maybdach l3ad dyal locker")
   useEffect(() => {
@@ -782,17 +847,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             </div>
           )}
 
-          {/* Active Player Iframe - Protected with Anti-Popup Sandbox */}
+          {/* Active Player Iframe - Protected with Anti-Popup Shield */}
           {hasStartedPlayback && !effectiveLocked && (
             <iframe
               key={`${selectedServer.id}-${media.id}-${currentSeason}-${currentEpisode}-${iframeKey}`}
               src={activeStreamUrl}
               title={`${title} Stream Player`}
               className="w-full h-full border-0 relative z-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
               allowFullScreen
-              referrerPolicy="no-referrer"
               loading="eager"
               onLoad={() => setIsPlayerLoading(false)}
             />
