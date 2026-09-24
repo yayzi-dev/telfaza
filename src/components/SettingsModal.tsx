@@ -55,7 +55,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setApiKey(DEFAULT_TMDB_API_KEY);
     setLockerEnabled(true);
     setLockerId('o4e5p2');
-    setDelaySeconds(10);
+    setDelaySeconds(20);
   };
 
   return (

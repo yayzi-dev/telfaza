@@ -1,0 +1,13 @@
+# Perkvex Cinema Streaming Robots File
+User-agent: *
+Allow: /
+Allow: /movies
+Allow: /tv
+Allow: /anime
+Allow: /trending
+
+# Crawl delay
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://ais-dev-ziy53iki5c2xqd2ry3zt7l-919721942605.europe-west2.run.app/sitemap.xml

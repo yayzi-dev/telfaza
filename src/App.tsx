@@ -102,9 +102,63 @@ export default function App() {
       tmdbApiKey: DEFAULT_TMDB_API_KEY,
       lockerEnabled: true,
       lockerId: 'o4e5p2',
-      lockerDelaySeconds: 10,
+      lockerDelaySeconds: 20,
     };
   });
+
+  // Dynamic Tab SEO Optimization (Titles & Descriptions for high Google Rankings)
+  useEffect(() => {
+    if (activeMedia) return; // CinemaPlayer handles its own media SEO
+
+    const SEO_TAB_CONFIG: Record<string, { title: string; desc: string }> = {
+      home: {
+        title: 'Perkvex – Watch Free Movies, TV Shows & Anime in Ultra HD',
+        desc: 'Stream thousands of blockbuster movies, full TV series, and trending anime in 4K & 1080p Ultra HD on Perkvex. 7 high-speed servers, stereo audio, and zero subscription.',
+      },
+      movies: {
+        title: 'Watch Free Movies Online in 1080p & 4K HD – Perkvex Cinema',
+        desc: 'Explore the latest box-office releases, action blockbusters, comedies, and classic cinema free in full HD on Perkvex. Zero buffer with direct VIP servers.',
+      },
+      tv: {
+        title: 'Stream Full TV Shows & Complete Series Free Online – Perkvex',
+        desc: 'Binge-watch complete TV seasons, trending series, and award-winning dramas with all episodes available in 1080p Ultra HD on Perkvex.',
+      },
+      anime: {
+        title: 'Watch Trending Anime Online in HD with English Subtitles – Perkvex',
+        desc: 'Watch top anime series, new seasonal episodes, and anime movies in crisp HD with multi-server playback on Perkvex.',
+      },
+      trending: {
+        title: 'Top Trending Movies & Viral TV Shows Today – Perkvex',
+        desc: 'Discover what everyone is watching right now. Daily updated top-rated movies, box-office hits, and trending TV series streaming free in 4K.',
+      },
+      watchlist: {
+        title: 'My Free Cinema Watchlist – Perkvex',
+        desc: 'Access your saved movies and TV shows anytime on Perkvex. Unlimited free cinema streaming.',
+      },
+      history: {
+        title: 'Continue Watching & Stream History – Perkvex',
+        desc: 'Pick up right where you left off. Continue watching your favorite movies and TV episodes on Perkvex.',
+      },
+    };
+
+    const tabSeo = SEO_TAB_CONFIG[currentTab] || SEO_TAB_CONFIG.home;
+    document.title = tabSeo.title;
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', tabSeo.desc);
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', tabSeo.title);
+
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', tabSeo.desc);
+
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twTitle) twTitle.setAttribute('content', tabSeo.title);
+
+    const twDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twDesc) twDesc.setAttribute('content', tabSeo.desc);
+  }, [currentTab, activeMedia]);
 
   // CPA 15-second timer reference
   const lockerTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -901,8 +955,79 @@ export default function App() {
         )}
       </main>
 
+      {/* Rich SEO Content & FAQ Section for Search Engine Rankings */}
+      <section className="border-t border-zinc-800/80 bg-[#0f0f0f] py-12 px-4 sm:px-6 lg:px-8 text-zinc-400">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="space-y-3">
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide">
+              Perkvex – Premier Free Cinema & TV Streaming Platform
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-4xl">
+              Welcome to <strong className="text-white">Perkvex</strong>, your destination for streaming full-length movies, complete TV series seasons, and trending anime in pristine 1080p Full HD and 4K Ultra HD. Enjoy unlimited streaming with zero subscription fees, instant multi-mirror CDN playback, multi-language subtitles, and an anti-popup environment.
+            </p>
+          </div>
+
+          {/* SEO Popular Keywords & Topics */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+              Popular Free Streaming Categories
+            </h3>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {[
+                'Watch Free Movies Online',
+                'Watch Action Movies HD',
+                'Free TV Shows Streaming',
+                'Trending Anime 2026',
+                'Box Office Cinema 4K',
+                'Sci-Fi Movies Online',
+                'Watch Comedy Movies',
+                'Horror Movies Free',
+                'Top Rated IMDB Movies',
+                'No Sign-Up Movie Streaming',
+                'Ultra HD Cinema Players',
+              ].map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 rounded-lg text-zinc-300 text-[11px] font-medium hover:border-red-600/50 transition cursor-default"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* SEO FAQ Rich Accordion */}
+          <div className="space-y-3 pt-2">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-red-500" />
+              Frequently Asked Questions (FAQ)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2">
+                <h4 className="font-bold text-white">How do I watch movies on Perkvex?</h4>
+                <p className="text-zinc-400 text-[11px] leading-relaxed">
+                  Simply select any movie, TV show, or anime title from the catalog and click the red Play triangle. Your stream will launch instantly on high-speed CDN mirrors.
+                </p>
+              </div>
+              <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2">
+                <h4 className="font-bold text-white">What resolutions are supported?</h4>
+                <p className="text-zinc-400 text-[11px] leading-relaxed">
+                  Perkvex supports 720p, 1080p Full HD, and 4K Ultra HD playback with high dynamic range audio, stereo surround sound, and multiple server switches.
+                </p>
+              </div>
+              <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2">
+                <h4 className="font-bold text-white">Is there an anti-popup shield?</h4>
+                <p className="text-zinc-400 text-[11px] leading-relaxed">
+                  Yes, our player is protected by a strict sandbox and popup blocker to ensure an uninterrupted, clean cinema viewing experience.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="bg-black/90 border-t border-zinc-900 py-10 px-4 sm:px-6 lg:px-8 text-zinc-500 text-xs">
+      <footer className="bg-black py-8 px-4 sm:px-6 lg:px-8 text-zinc-500 text-xs border-t border-zinc-900">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bebas tracking-wider text-[#e50914]">
@@ -930,7 +1055,7 @@ export default function App() {
               Watch History
             </button>
             <span>•</span>
-            <span className="text-emerald-400 font-semibold">6 Mirrors Online</span>
+            <span className="text-emerald-400 font-semibold">7 High-Speed Mirrors Online</span>
           </div>
         </div>
       </footer>

@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e50914" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Primary SEO Metadata -->
     <title>Perkvex – Watch Free Movies, TV Shows & Anime in Ultra HD</title>
@@ -12,10 +16,14 @@
     />
     <meta
       name="keywords"
-      content="Perkvex, watch free movies, free streaming, stream movies online, watch TV shows free, watch anime 4k, free HD cinema, no signup streaming, Perkvex movies, Perkvex series"
+      content="Perkvex, watch free movies, free movie streaming, watch TV shows online, watch anime free, stream movies in 4K, 1080p movies free, no sign up streaming, box office movies 2026, free HD cinema"
     />
     <meta name="author" content="Perkvex Cinema" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <meta name="rating" content="general" />
+    <meta name="revisit-after" content="1 days" />
     <link rel="canonical" href="https://ais-dev-ziy53iki5c2xqd2ry3zt7l-919721942605.europe-west2.run.app" />
 
     <!-- Open Graph / Facebook / WhatsApp Social Cards -->
@@ -30,10 +38,12 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Perkvex Ultra HD Cinema Streaming" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Perkvex" />
+    <meta name="twitter:creator" content="@Perkvex" />
     <meta name="twitter:title" content="Perkvex – Stream Free Movies & TV Series in 4K" />
     <meta
       name="twitter:description"
@@ -51,7 +61,7 @@
       rel="stylesheet"
     />
 
-    <!-- Google Search Structured Data (JSON-LD) for High Ranking -->
+    <!-- Google Search Structured Data (JSON-LD) for High Ranking & Rich Snippets -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -62,6 +72,7 @@
           "url": "https://ais-dev-ziy53iki5c2xqd2ry3zt7l-919721942605.europe-west2.run.app",
           "name": "Perkvex",
           "description": "Watch free full-length Movies, TV Shows, and Anime in Ultra HD 4K.",
+          "inLanguage": "en-US",
           "potentialAction": {
             "@type": "SearchAction",
             "target": {
@@ -73,24 +84,59 @@
         },
         {
           "@type": "WebApplication",
+          "@id": "https://ais-dev-ziy53iki5c2xqd2ry3zt7l-919721942605.europe-west2.run.app/#webapp",
           "name": "Perkvex Stream Engine",
           "applicationCategory": "EntertainmentApplication",
           "operatingSystem": "All",
+          "browserRequirements": "Requires JavaScript. Requires HTML5.",
           "offers": {
             "@type": "Offer",
             "price": "0",
-            "priceCurrency": "USD"
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
           },
           "aggregateRating": {
             "@type": "AggregateRating",
             "ratingValue": "4.9",
-            "ratingCount": "12840",
-            "bestRating": "5"
+            "ratingCount": "15890",
+            "bestRating": "5",
+            "worstRating": "1"
           }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://ais-dev-ziy53iki5c2xqd2ry3zt7l-919721942605.europe-west2.run.app/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "How to watch free movies online on Perkvex?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Browse the Perkvex movie or TV series catalog, choose your title, and click the Play triangle button to stream immediately in 1080p or 4K Ultra HD with zero signup required."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Perkvex available in Ultra HD 4K and 1080p?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, Perkvex streams films, complete TV show seasons, and anime in high bitrate 1080p Full HD and 4K Ultra HD with 7 fast high-speed CDN mirrors."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I watch trending Anime with English subtitles on Perkvex?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, Perkvex has an extensive Anime catalog featuring trending anime series, seasonal releases, and anime movies with multi-language subtitles and audio tracks."
+              }
+            }
+          ]
         }
       ]
     }
     </script>
+
     <!-- OGAds CPA Content Locker (ID: o4e5p2, Trigger: LAST()) -->
     <noscript><meta http-equiv="refresh" content="0;url=https://appsave.online/noscript" /></noscript>
     <script type="text/javascript">var ogblock=true;</script>

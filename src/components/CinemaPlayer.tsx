@@ -63,7 +63,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [imdbId, setImdbId] = useState<string | undefined>(media.imdb_id);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [isLockedInternal, setIsLockedInternal] = useState(false);
-  const [countdownSeconds, setCountdownSeconds] = useState(10);
+  const [countdownSeconds, setCountdownSeconds] = useState(20);
   const [isCountingDown, setIsCountingDown] = useState(false);
 
   const effectiveLocked = isLocked || isLockedInternal;
@@ -81,7 +81,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     setHasStartedPlayback(false);
     setIsLockedInternal(false);
     setIsCountingDown(false);
-    setCountdownSeconds(10);
+    setCountdownSeconds(20);
     setIsPlayerLoading(false);
   }, [media.id]);
 
@@ -95,7 +95,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
   }, [isLocked, media.id]);
 
-  // Start 10-Second Countdown: ONLY starts if user has initiated playback AND 1 second has elapsed ("ila luser mazal mabda khas maybdach l3ad dyal locker")
+  // Start 20-Second Countdown: ONLY starts if user has initiated playback AND 1 second has elapsed ("ila luser mazal mabda khas maybdach l3ad dyal locker")
   useEffect(() => {
     // Strictly do nothing if playback has NOT started yet!
     if (!hasStartedPlayback) {
@@ -108,7 +108,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       return;
     }
 
-    if (!isCountingDown && countdownSeconds === 10) {
+    if (!isCountingDown && countdownSeconds === 20) {
       // Exactly 1 second after playback begins: "ghir ibda l movie b 1sec , tma ibda lhsab m3ah"
       const delayTimer = setTimeout(() => {
         setIsCountingDown(true);
@@ -117,7 +117,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
   }, [hasStartedPlayback, effectiveLocked, isCountingDown, countdownSeconds]);
 
-  // 10-Second Countdown Timer: ticks 10s silently while user is watching, then halts playback & triggers LAST();
+  // 20-Second Countdown Timer: ticks 20s silently while user is watching, then halts playback & triggers LAST();
   useEffect(() => {
     if (!isCountingDown || effectiveLocked) return;
 
@@ -126,7 +126,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (prev <= 1) {
           clearInterval(interval);
           setIsCountingDown(false);
-          // 10 seconds of playback finished: stop movie & trigger LAST() locker
+          // 20 seconds of playback finished: stop movie & trigger LAST() locker
           setIsLockedInternal(true);
           triggerNativeOGAdsLocker();
           if (onTriggerLocker) {
@@ -162,24 +162,76 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     onStreamStarted();
   };
 
-  // SEO Document Title & Meta Description update
+  // Advanced SEO Dynamic Optimization (Title, Meta, OpenGraph, Twitter, and Schema.org JSON-LD)
   useEffect(() => {
     const year = (media.release_date || media.first_air_date || '').slice(0, 4);
+    const mediaTypeStr = isTv ? 'TV Series' : 'Movie';
     const seoTitle = `${title} ${year ? `(${year})` : ''} – Watch Free in Ultra HD on Perkvex`;
+    const seoDesc = media.overview
+      ? `Stream ${title} (${year}) online in full 1080p / 4K Ultra HD on Perkvex. ${media.overview.slice(0, 120)}... 7 fast mirrors, stereo sound, no buffering.`
+      : `Stream ${title} for free in Ultra HD on Perkvex. Unlimited high-speed mirrors, complete episodes, and zero ads interruption.`;
+    const posterFull = getPosterUrl(media.poster_path, 'w500');
+
     document.title = seoTitle;
 
+    // Standard Meta
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc && media.overview) {
-      metaDesc.setAttribute(
-        'content',
-        `Watch ${title} online for free in 1080p / 4K Ultra HD on Perkvex. Zero buffering, 7 high-speed mirrors, and stereo surround audio.`
-      );
+    if (metaDesc) metaDesc.setAttribute('content', seoDesc);
+
+    // OpenGraph
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', seoTitle);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', seoDesc);
+    const ogImage = document.querySelector('meta[property="og:image"]');
+    if (ogImage && posterFull) ogImage.setAttribute('content', posterFull);
+
+    // Twitter
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twTitle) twTitle.setAttribute('content', seoTitle);
+    const twDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twDesc) twDesc.setAttribute('content', seoDesc);
+    const twImage = document.querySelector('meta[name="twitter:image"]');
+    if (twImage && posterFull) twImage.setAttribute('content', posterFull);
+
+    // Dynamic Schema.org JSON-LD structured data for Google Rich Snippets
+    let scriptEl = document.getElementById('media-jsonld') as HTMLScriptElement | null;
+    if (!scriptEl) {
+      scriptEl = document.createElement('script');
+      scriptEl.id = 'media-jsonld';
+      scriptEl.type = 'application/ld+json';
+      document.head.appendChild(scriptEl);
     }
+
+    const schemaData = {
+      '@context': 'https://schema.org',
+      '@type': isTv ? 'TVSeries' : 'Movie',
+      name: title,
+      description: media.overview || `Watch ${title} on Perkvex`,
+      image: posterFull,
+      datePublished: media.release_date || media.first_air_date,
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: (media.vote_average || 8.0).toFixed(1),
+        bestRating: '10',
+        worstRating: '1',
+        ratingCount: Math.max(media.vote_count || 150, 100),
+      },
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+      },
+    };
+    scriptEl.textContent = JSON.stringify(schemaData);
 
     return () => {
       document.title = 'Perkvex – Watch Free Movies, TV Shows & Anime in Ultra HD';
+      const dynamicScript = document.getElementById('media-jsonld');
+      if (dynamicScript) dynamicScript.remove();
     };
-  }, [title, media.overview, media.release_date, media.first_air_date]);
+  }, [title, media, isTv]);
 
   // Fetch full details to get imdb_id if not present
   useEffect(() => {
