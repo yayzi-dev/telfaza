@@ -27,6 +27,70 @@
     <meta name="twitter:description" content="Stream full-length trending movies, complete TV series, and anime online for free in 1080p and 4K Ultra HD on Perkvex." />
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop" />
 
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://perkvex.online/" />
+
+    <!-- Schema.org WebSite, Organization, ItemList & FAQ Structured Data for Google Ranking -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://perkvex.online/#website",
+          "url": "https://perkvex.online/",
+          "name": "Perkvex Cinema",
+          "description": "Stream full-length trending movies, complete TV series, and anime online for free in 1080p and 4K Ultra HD on Perkvex.",
+          "inLanguage": "en-US",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://perkvex.online/?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://perkvex.online/#organization",
+          "name": "Perkvex HD Cinema",
+          "url": "https://perkvex.online/"
+        },
+        {
+          "@type": "ItemList",
+          "@id": "https://perkvex.online/#popular",
+          "name": "Trending Blockbusters & TV Series on Perkvex",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Dune: Part Two", "url": "https://perkvex.online/?watch=dune-part-two" },
+            { "@type": "ListItem", "position": 2, "name": "Interstellar", "url": "https://perkvex.online/?watch=interstellar" },
+            { "@type": "ListItem", "position": 3, "name": "Game of Thrones", "url": "https://perkvex.online/?watch=game-of-thrones" },
+            { "@type": "ListItem", "position": 4, "name": "Stranger Things", "url": "https://perkvex.online/?watch=stranger-things" }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://perkvex.online/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Can I watch movies and TV shows online for free on Perkvex?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, Perkvex offers instant 1080p and 4K streaming for trending box office movies, popular TV series, and anime without any subscription fees."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Are subtitles and multi-language audio available?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, multiple servers provide multi-subtitles and audio options for full-length cinema titles."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <!-- Stream CDN Preconnect for Instant Playback -->
     <link rel="preconnect" href="https://vidsrc.pm" crossorigin />
     <link rel="dns-prefetch" href="https://vidsrc.pm" />
@@ -77,8 +141,55 @@
 
     <!-- OGAds Content Locker Script (Campaign: o4e5p2) -->
     <script type="text/javascript" src="https://appsave.online/cl/js/o4e5p2"></script>
+
+    <!-- 100% privacy-first analytics -->
+    <script data-collect-dnt="true" async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+
+    <!-- Critical Base Cinema Fallback Styles (ensures dark background & proper layout even before CSS bundles load) -->
+    <style>
+      html, body {
+        background-color: #141414 !important;
+        color: #ffffff !important;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      #root {
+        background-color: #141414;
+        min-height: 100vh;
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+      .goog-te-banner-frame.skiptranslate, .goog-te-banner-frame { display: none !important; }
+      body { top: 0px !important; }
+      .goog-tooltip, .goog-tooltip:hover { display: none !important; }
+      .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+      #goog-gt-tt { display: none !important; }
+      body > .skiptranslate { display: none !important; }
+    </style>
+    <div id="google_translate_element" style="display:none"></div>
+    <script>
+      function googleTranslateElementInit() {
+        if (window.google && window.google.translate) {
+          try {
+            new window.google.translate.TranslateElement({
+              pageLanguage: 'en',
+              includedLanguages: 'en,fr,de,es,ar',
+              autoDisplay: false
+            }, 'google_translate_element');
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+    </script>
+    <script async defer src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   </head>
   <body class="bg-[#141414] text-white min-h-screen selection:bg-red-600 selection:text-white">
+    <!-- Simple Analytics fallback for noscript -->
+    <noscript><img src="https://queue.simpleanalyticscdn.com/noscript.gif?collect-dnt=true" alt="" referrerpolicy="no-referrer-when-downgrade"/></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

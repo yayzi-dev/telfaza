@@ -18,11 +18,16 @@ import {
   Play,
   Lock,
   AlertCircle,
+  Users,
 } from 'lucide-react';
 import { MediaItem, TVEpisode, CastMember, SeasonSummary } from '../types';
 import { STREAMING_SERVERS } from '../config/servers';
 import { fetchTVSeason, fetchTVDetails, fetchDetails, fetchCredits, fetchSimilar, getPosterUrl, getBackdropUrl } from '../services/tmdb';
 import { triggerNativeOGAdsLocker, subscribeToLockerUnlock, markMediaUnlocked } from '../utils/locker';
+import { useLanguage } from '../context/LanguageContext';
+import { WatchPartyModal } from './WatchPartyModal';
+import { CommunityReviews } from './CommunityReviews';
+import { liveTracker } from '../services/liveTracker';
 
 interface CinemaPlayerProps {
   media: MediaItem;
@@ -45,8 +50,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   isLocked = false,
   onTriggerLocker,
 }) => {
+  const { t } = useLanguage();
   const isTv = media.media_type === 'tv' || !!media.first_air_date;
   const title = media.title || media.name || 'Now Streaming';
+  const LOCKER_COUNTDOWN_SECONDS = 25;
+
   const [selectedServer, setSelectedServer] = useState(STREAMING_SERVERS[0]);
   const [currentSeason, setCurrentSeason] = useState(initialSeason);
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
@@ -63,8 +71,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [imdbId, setImdbId] = useState<string | undefined>(media.imdb_id);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [isLockedInternal, setIsLockedInternal] = useState(false);
-  const [countdownSeconds, setCountdownSeconds] = useState(20);
+  const [countdownSeconds, setCountdownSeconds] = useState(LOCKER_COUNTDOWN_SECONDS);
   const [isCountingDown, setIsCountingDown] = useState(false);
+  const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
 
   const effectiveLocked = isLocked || isLockedInternal;
 
@@ -81,7 +90,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     setHasStartedPlayback(false);
     setIsLockedInternal(false);
     setIsCountingDown(false);
-    setCountdownSeconds(20);
+    setCountdownSeconds(LOCKER_COUNTDOWN_SECONDS);
     setIsPlayerLoading(false);
   }, [media.id]);
 
@@ -99,6 +108,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   useEffect(() => {
     const unsubscribe = subscribeToLockerUnlock(() => {
       markMediaUnlocked(media.id);
+      liveTracker.recordLockerEvent(media, 'unlocked');
       setIsLockedInternal(false);
       setIsCountingDown(false);
       setHasStartedPlayback(true);
@@ -173,14 +183,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       return;
     }
 
-    if (!isCountingDown && countdownSeconds === 20) {
+    if (!isCountingDown && countdownSeconds === LOCKER_COUNTDOWN_SECONDS) {
       // Exactly 1 second after playback begins: "ghir ibda l movie b 1sec , tma ibda lhsab m3ah"
       const delayTimer = setTimeout(() => {
         setIsCountingDown(true);
       }, 1000);
       return () => clearTimeout(delayTimer);
     }
-  }, [hasStartedPlayback, effectiveLocked, isCountingDown, countdownSeconds]);
+  }, [hasStartedPlayback, effectiveLocked, isCountingDown, countdownSeconds, LOCKER_COUNTDOWN_SECONDS]);
 
   // 20-Second Countdown Timer: ticks 20s silently while user is watching, then halts playback & triggers LAST();
   useEffect(() => {
@@ -193,6 +203,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setIsCountingDown(false);
           // 20 seconds of playback finished: stop movie & trigger LAST() locker
           setIsLockedInternal(true);
+          liveTracker.recordLockerEvent(media, 'prompted');
           triggerNativeOGAdsLocker();
           if (onTriggerLocker) {
             onTriggerLocker();
@@ -204,12 +215,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isCountingDown, effectiveLocked, onTriggerLocker]);
+  }, [isCountingDown, effectiveLocked, onTriggerLocker, media]);
 
   // Center Play triangle button click handler ("daak lmotalat bach ibda l fraja")
   const handleStartPlayCenter = () => {
     setHasStartedPlayback(true);
     setIsPlayerLoading(true);
+    liveTracker.recordStreamStart(media, currentSeason, currentEpisode, selectedServer.name);
 
     // Fast loading safety timeout: dismiss loading indicator in 800ms so it NEVER freezes or hangs
     setTimeout(() => {
@@ -447,7 +459,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   return (
     <div className="min-h-screen bg-[#141414] text-white pt-18 sm:pt-20 pb-16 animate-fade-in">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
         {/* Navigation & Status Breadcrumb */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <button
@@ -456,13 +468,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-lg transition font-medium cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Browse</span>
+            <span>{t('back_to_browse')}</span>
           </button>
 
           <div className="flex items-center gap-2.5">
             <span className="hidden sm:flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>Full-Length 100% Free HD Stream</span>
+              <span>{t('free_hd_stream')}</span>
             </span>
 
             {/* In-Site Theater Mode Toggle */}
@@ -472,7 +484,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-lg transition font-medium text-xs cursor-pointer"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span>{isCinemaExpanded ? 'Standard' : 'Theater'}</span>
+              <span>{isCinemaExpanded ? t('standard_view') : t('theater_mode')}</span>
+            </button>
+
+            {/* Watch Party & Share Button */}
+            <button
+              type="button"
+              onClick={() => setShowWatchPartyModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e50914] hover:bg-red-700 text-white rounded-lg transition font-bold text-xs cursor-pointer shadow-md shadow-red-950/40"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Watch Party</span>
             </button>
 
             {/* Anti-Popup Ad Shield Badge */}
@@ -486,23 +508,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           </div>
         </div>
 
-        {/* 7-Server Selector Switch Bar */}
+        {/* Server Selector Switch Bar */}
         <div className="bg-[#1a1a1a] border border-zinc-800 rounded-2xl p-2.5 sm:p-3 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-zinc-800/80">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-200">
-                Streaming Mirrors (7 Ultra HD Servers):
+                Streaming Mirrors (Ultra HD VIP Servers):
               </span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-zinc-400">
               <span className="text-emerald-400 font-medium">Verified Working • Instant Playback</span>
               <span className="hidden md:inline text-zinc-600">•</span>
-              <span className="hidden md:inline">Ga3 les 7 servers kheddamin b tari9a d Server 1 (100% Zero Sandbox / Zero Ads)</span>
+              <span className="hidden md:inline">Ultra HD VIP CDN with zero buffering & anti-popup shield</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 pt-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2.5">
             {STREAMING_SERVERS.map((server, idx) => {
               const isSelected = selectedServer.id === server.id;
               return (
@@ -510,6 +532,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   key={server.id}
                   onClick={() => {
                     setSelectedServer(server);
+                    liveTracker.recordStreamStart(media, currentSeason, currentEpisode, server.name);
                     handleReloadPlayer();
                   }}
                   className={`relative flex flex-col items-start p-2.5 rounded-xl border text-left transition cursor-pointer group ${
@@ -1043,6 +1066,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           )}
         </div>
 
+        {/* Community Reviews & Discussions Section */}
+        <div className="pt-4">
+          <CommunityReviews media={media} />
+        </div>
+
         {/* Similar / Recommended Titles */}
         {similar.length > 0 && (
           <div className="space-y-4 pt-6">
@@ -1078,6 +1106,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Watch Party & Cinema Room Share Modal */}
+      <WatchPartyModal
+        isOpen={showWatchPartyModal}
+        onClose={() => setShowWatchPartyModal(false)}
+        media={media}
+        season={currentSeason}
+        episode={currentEpisode}
+      />
     </div>
   );
 };

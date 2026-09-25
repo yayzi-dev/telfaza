@@ -44,9 +44,9 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   if (!items || items.length === 0) return null;
 
   return (
-    <section className="relative py-4 sm:py-6 space-y-3 group/carousel">
+    <section className="relative py-4 sm:py-6 space-y-3 group/carousel max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
       {/* Header Row */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide flex items-center gap-2">
@@ -85,16 +85,16 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
         <button
           type="button"
           onClick={() => handleScroll('left')}
-          className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 bg-black/70 hover:bg-black/90 text-white rounded-full backdrop-blur-sm border border-zinc-700/50 opacity-0 group-hover/carousel:opacity-100 transition-all duration-200 cursor-pointer shadow-lg disabled:opacity-0"
+          className="absolute -left-3 sm:-left-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 bg-black/80 hover:bg-black text-white rounded-full backdrop-blur-md border border-zinc-700/60 opacity-0 group-hover/carousel:opacity-100 transition-all duration-200 cursor-pointer shadow-xl disabled:opacity-0 hidden sm:flex items-center justify-center"
           aria-label="Scroll left"
         >
           <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
 
-        {/* Horizontal Card Row */}
+        {/* Horizontal Card Row with clean margins and touch scrolling */}
         <div
           ref={scrollContainerRef}
-          className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto no-scrollbar px-4 sm:px-6 lg:px-8 py-2 scroll-smooth"
+          className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-2 scroll-smooth touch-pan-x"
         >
           {items.map((item) => (
             <MediaCard
@@ -112,7 +112,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
         <button
           type="button"
           onClick={() => handleScroll('right')}
-          className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 bg-black/70 hover:bg-black/90 text-white rounded-full backdrop-blur-sm border border-zinc-700/50 opacity-0 group-hover/carousel:opacity-100 transition-all duration-200 cursor-pointer shadow-lg"
+          className="absolute -right-3 sm:-right-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 bg-black/80 hover:bg-black text-white rounded-full backdrop-blur-md border border-zinc-700/60 opacity-0 group-hover/carousel:opacity-100 transition-all duration-200 cursor-pointer shadow-xl hidden sm:flex items-center justify-center"
           aria-label="Scroll right"
         >
           <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />

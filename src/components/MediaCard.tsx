@@ -25,7 +25,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   const posterUrl = getPosterUrl(item.poster_path, 'w500');
 
   return (
-    <div className="group relative flex-shrink-0 w-36 sm:w-44 md:w-48 lg:w-52 select-none cursor-pointer transition-all duration-300 transform hover:-translate-y-1.5 hover:z-20">
+    <div className="group relative flex-shrink-0 w-32 sm:w-40 md:w-44 lg:w-48 select-none cursor-pointer transition-all duration-300 transform hover:-translate-y-1.5 active:scale-[0.98] hover:z-20 touch-manipulation">
       {/* Poster Container */}
       <div
         onClick={() => onOpenDetails(item)}

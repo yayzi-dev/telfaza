@@ -1,13 +1,15 @@
-# Perkvex Cinema Streaming Robots File
 User-agent: *
 Allow: /
-Allow: /movies
-Allow: /tv
-Allow: /anime
-Allow: /trending
 
-# Crawl delay
-Crawl-delay: 1
+# Priority Crawl instructions for Googlebot, Bingbot, DuckDuckGo & Yandex
+User-agent: Googlebot
+Allow: /
 
-# Sitemaps
-Sitemap: https://ais-dev-ziy53iki5c2xqd2ry3zt7l-919721942605.europe-west2.run.app/sitemap.xml
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Full PSEO XML Sitemap Index
+Sitemap: https://perkvex.online/sitemap.xml

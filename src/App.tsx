@@ -25,6 +25,8 @@ import {
   fetchByGenre,
   fetchAnime,
   searchCatalog,
+  fetchDetails,
+  fetchTVDetails,
   GENRE_MAP,
   getPosterUrl,
 } from './services/tmdb';
@@ -36,6 +38,10 @@ import { MediaDetailModal } from './components/MediaDetailModal';
 import { TrailerModal } from './components/TrailerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { triggerNativeOGAdsLocker } from './utils/locker';
+import { AdminLoginModal } from './components/admin/AdminLoginModal';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { adminAuth } from './services/adminAuth';
+import { liveTracker } from './services/liveTracker';
 
 const CATEGORIES = ['All', 'Action', 'Comedy', 'Horror', 'Sci-Fi', 'Drama'];
 
@@ -56,6 +62,8 @@ export default function App() {
   const [detailMedia, setDetailMedia] = useState<MediaItem | null>(null);
   const [trailerMedia, setTrailerMedia] = useState<MediaItem | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
 
   // Data Collections
   const [heroMedia, setHeroMedia] = useState<MediaItem | null>(null);
@@ -202,6 +210,78 @@ export default function App() {
     } catch {
       // ignore
     }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['home', 'movies', 'tv', 'anime', 'trending', 'watchlist', 'history'].includes(tabParam)) {
+        setCurrentTab(tabParam as any);
+      }
+      const searchParam = params.get('search');
+      if (searchParam) {
+        setSearchQuery(searchParam);
+        setCurrentTab('search');
+        setIsSearching(true);
+        searchCatalog(searchParam).then((res) => {
+          setSearchResults(res);
+          setIsSearching(false);
+        });
+      }
+
+      const watchParam = params.get('watch');
+      if (watchParam) {
+        const id = parseInt(watchParam, 10);
+        const s = parseInt(params.get('season') || '1', 10);
+        const e = parseInt(params.get('episode') || '1', 10);
+        if (!isNaN(id)) {
+          fetchDetails('movie', id)
+            .then((m) => {
+              if (m && m.id) {
+                handlePlayMedia(m, s, e);
+              } else {
+                fetchTVDetails(id).then((tv) => {
+                  if (tv && tv.id) handlePlayMedia(tv, s, e);
+                });
+              }
+            })
+            .catch(() => {
+              fetchTVDetails(id).then((tv) => {
+                if (tv && tv.id) handlePlayMedia(tv, s, e);
+              });
+            });
+        }
+      }
+
+      // Secret Admin URL Query: ?admin=... or ?vault=true
+      const adminParam = params.get('admin') || params.get('vault');
+      if (adminParam) {
+        if (adminAuth.getState().isAuthenticated) {
+          setIsAdminDashboardOpen(true);
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Record page view in live telemetry tracker
+    liveTracker.recordPageView();
+
+    // Secret Admin Keyboard Shortcut: Ctrl + Shift + A (or Cmd + Shift + A)
+    const handleAdminKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        if (adminAuth.getState().isAuthenticated) {
+          setIsAdminDashboardOpen(true);
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleAdminKey);
+    return () => window.removeEventListener('keydown', handleAdminKey);
   }, []);
 
   // Initial TMDB Data Load
@@ -354,6 +434,13 @@ export default function App() {
         }}
         onSearchSubmit={handleExecuteSearch}
         onOpenSettings={() => setShowSettings(true)}
+        onTriggerAdmin={() => {
+          if (adminAuth.getState().isAuthenticated) {
+            setIsAdminDashboardOpen(true);
+          } else {
+            setIsAdminLoginOpen(true);
+          }
+        }}
         watchlistCount={watchlist.length}
       />
 
@@ -1356,6 +1443,22 @@ export default function App() {
           onTriggerTestLocker={handleTriggerTestLocker}
         />
       )}
+
+      {/* Secret Military-Grade Admin Authentication Modal */}
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onSuccess={() => {
+          setIsAdminLoginOpen(false);
+          setIsAdminDashboardOpen(true);
+        }}
+      />
+
+      {/* Real-time Telemetry & Stream Command Center */}
+      <AdminDashboard
+        isOpen={isAdminDashboardOpen}
+        onClose={() => setIsAdminDashboardOpen(false)}
+      />
     </div>
   );
 }

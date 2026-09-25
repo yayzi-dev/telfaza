@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Film, Tv, Flame, Bookmark, History, X, Star, Menu, Play, Home, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { MediaItem } from '../types';
 import { searchCatalog, getPosterUrl } from '../services/tmdb';
+import { LanguageSelector } from './LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NavbarProps {
   currentTab: 'home' | 'movies' | 'tv' | 'anime' | 'trending' | 'watchlist' | 'history' | 'search';
@@ -9,6 +11,7 @@ interface NavbarProps {
   onOpenMedia: (item: MediaItem) => void;
   onSearchSubmit?: (query: string) => void;
   onOpenSettings?: () => void;
+  onTriggerAdmin?: () => void;
   watchlistCount: number;
 }
 
@@ -17,8 +20,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   onOpenMedia,
   onSearchSubmit,
+  onTriggerAdmin,
   watchlistCount,
 }) => {
+  const { t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
@@ -26,10 +31,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const logoClicksRef = useRef(0);
+  const logoTimerRef = useRef<any>(null);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const desktopInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoClick = () => {
+    onSelectTab('home');
+    setMobileMenuOpen(false);
+    setMobileSearchOpen(false);
+
+    logoClicksRef.current += 1;
+    clearTimeout(logoTimerRef.current);
+    logoTimerRef.current = setTimeout(() => {
+      logoClicksRef.current = 0;
+    }, 2500);
+
+    if (logoClicksRef.current >= 5) {
+      logoClicksRef.current = 0;
+      if (onTriggerAdmin) {
+        onTriggerAdmin();
+      }
+    }
+  };
 
   // Scroll listener for translucent Netflix-style blur navbar
   useEffect(() => {
@@ -112,13 +139,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   }
 
   const navLinks: NavLinkItem[] = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'movies', label: 'Movies', icon: Film },
-    { id: 'tv', label: 'TV Series', icon: Tv },
-    { id: 'anime', label: 'Anime', icon: Sparkles, badge: 'HOT' },
-    { id: 'trending', label: 'Trending', icon: Flame },
-    { id: 'watchlist', label: 'My List', count: watchlistCount, icon: Bookmark },
-    { id: 'history', label: 'History', icon: History },
+    { id: 'home', label: t('home'), icon: Home },
+    { id: 'movies', label: t('movies'), icon: Film },
+    { id: 'tv', label: t('tv'), icon: Tv },
+    { id: 'anime', label: t('anime'), icon: Sparkles, badge: 'HOT' },
+    { id: 'trending', label: t('trending'), icon: Flame },
+    { id: 'watchlist', label: t('watchlist'), count: watchlistCount, icon: Bookmark },
+    { id: 'history', label: t('history'), icon: History },
   ];
 
   return (
@@ -134,11 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-4 lg:gap-8">
           <button
             type="button"
-            onClick={() => {
-              onSelectTab('home');
-              setMobileMenuOpen(false);
-              setMobileSearchOpen(false);
-            }}
+            onClick={handleLogoClick}
             className="flex items-center gap-1.5 focus:outline-none cursor-pointer group shrink-0"
           >
             <span className="text-2xl sm:text-3xl font-black font-bebas tracking-wider text-[#e50914] group-hover:scale-105 transition">
@@ -180,10 +203,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
         </div>
 
-        {/* Right: Search Box (Desktop) + Mobile Action Icons */}
+        {/* Right: Search Box (Desktop) + Language Selector + Mobile Action Icons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Language Selector (Pill Dropdown next to Search) */}
+          <LanguageSelector className="shrink-0" />
+
           {/* Desktop Search Box with Live Dropdown */}
-          <div ref={searchRef} className="relative hidden md:block w-56 lg:w-72">
+          <div ref={searchRef} className="relative hidden md:block w-52 lg:w-68">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
               <button
                 type="submit"
@@ -209,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onFocus={() => {
                   if (searchResults.length > 0 || searchQuery.trim()) setShowSearchDropdown(true);
                 }}
-                placeholder="Search all movies & series (Enter)..."
+                placeholder={t('search_placeholder')}
                 className="w-full pl-9 pr-8 py-1.5 bg-black/70 border border-zinc-700/80 focus:border-[#e50914] focus:bg-black rounded-full text-xs text-zinc-100 placeholder-zinc-500 outline-none transition duration-200"
               />
               {searchQuery && (

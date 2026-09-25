@@ -2,6 +2,7 @@ import React from 'react';
 import { Play, Info, Plus, Check, Star, Film, Tv, Volume2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { getBackdropUrl } from '../services/tmdb';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeroBannerProps {
   media: MediaItem | null;
@@ -19,6 +20,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   onToggleWatchlist,
   isInWatchlist,
 }) => {
+  const { t } = useLanguage();
   if (!media) return null;
 
   const title = media.title || media.name || 'Featured Title';
@@ -86,7 +88,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               className="px-6 sm:px-8 py-3 bg-[#e50914] hover:bg-red-700 active:scale-95 text-white font-bold text-sm sm:text-base rounded-xl transition duration-200 flex items-center gap-2.5 shadow-xl shadow-red-950/60 cursor-pointer"
             >
               <Play className="w-5 h-5 fill-white" />
-              <span>Watch Now</span>
+              <span>{t('watch_now')}</span>
             </button>
 
             <button
@@ -95,7 +97,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               className="px-5 py-3 bg-zinc-800/80 hover:bg-zinc-700/90 active:scale-95 text-white font-semibold text-sm rounded-xl backdrop-blur-sm border border-zinc-600/50 transition duration-200 flex items-center gap-2 cursor-pointer"
             >
               <Info className="w-4 h-4 text-zinc-300" />
-              <span>Trailer & Info</span>
+              <span>{t('more_info')}</span>
             </button>
 
             <button
